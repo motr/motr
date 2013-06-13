@@ -205,8 +205,10 @@ elseif  ( strctMovInfo.m_iCompressionFormat == 1 && ...
       % We want the index to be the start of the frame data proper,
       % skipping the 4-byte frame header
 else
-    assert(false);
-end;
+    error('motr:cantReadThisFlavorOfSeq', ...
+          sprintf('Unable to read a .seq file with this imageFormat (%d) and this compressionFormat (%d)', ...
+                  strctMovInfo.m_iImageFormat,strctMovInfo.m_iCompressionFormat));
+end
 fprintf('Done!\n');
 fclose(hFileID);
 return;
