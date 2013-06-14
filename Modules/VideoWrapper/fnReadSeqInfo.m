@@ -1,7 +1,16 @@
-function strctMovInfo = fnReadSeqInfo(strSeqFileName)
+function strctMovInfo = fnReadSeqInfo(strSeqFileName,forceNoMetadata)
 % Credits go for Poitr Dollar for the initial code of reading the SEQ
 % files.
+% forceNoMetaData, if true, means the resulting strctMovInfo structure says
+% that both the per-file and per-frame metadata is of length zero.  This
+% may be useful for reading Streampix 5.19+ files when the built-in
+% heuristics fail.
 
+% Deal with optional arguments
+if ~exist('forceNoMetadata','var') || isempty(forceNoMetadata)
+  forceNoMetadata=false;
+end 
+  
 hFileID = fopen(strSeqFileName);
 fseek(hFileID,0,'bof');
 % first 4 bytes store OxFEED, next 24 store 'Norpix seq  '
@@ -77,14 +86,30 @@ else
   end
 end
 
-% deal with file metadata info size
-if iVersion>=4
-  fseek(hFileID,640,'bof');
-  iFrameMetadataSize=fread(hFileID,1,'uint32');
-  iFileMetadataSize=fread(hFileID,1,'uint32');
-else
+% determine file and frame metadata size
+if forceNoMetadata
   iFrameMetadataSize=0;
-  iFileMetadataSize=0;
+  iFileMetadataSize=0;    
+else
+  if iVersion>=4
+    fseek(hFileID,640,'bof');
+    iFrameMetadataSize=fread(hFileID,1,'uint32');
+    iFileMetadataSize=fread(hFileID,1,'uint32');
+    % This is a hack to deal with files produced by Streampix v5.19
+    % Streampix 5.16-5.18 included metadata in the .seq file, but this was 
+    % removed in 5.19.  And there's no good way to determine what kind of
+    % .seq file you're dealing with (all of them say they're version 4).
+    % Daniel Wang at Norpix suggested the heuristic below.
+    if iFrameMetadataSize>=2^31
+      % Probably a 5.19+ files
+      warning('iFrameMetadataSize is %d, which is crazy.  Assuming this is a Streampix 5.19+ .seq file.',iFrameMetadataSize);
+      iFrameMetadataSize=0;
+      iFileMetadataSize=0;    
+    end
+  else
+    iFrameMetadataSize=0;
+    iFileMetadataSize=0;
+  end
 end
 
 % store strctMovInformation in strctMovInfo struct
@@ -146,7 +171,7 @@ afTimestamp = zeros(1, iNumFrames);
 hFileID = fopen(strctMovInfo.m_strFileName);
 %fseek(hFileID, aiSeekPos(1),'bof');
 if iNumFrames > 1000
-       fprintf('Generating seek info for %d frames, please wait...\n', iNumFrames);
+    fprintf('Generating seek info for %d frames, please wait...\n', iNumFrames);
 end;
 
 if ( strctMovInfo.m_iCompressionFormat == 0 && ...
@@ -207,7 +232,7 @@ elseif  ( strctMovInfo.m_iCompressionFormat == 1 && ...
 else
     error('motr:cantReadThisFlavorOfSeq', ...
           sprintf('Unable to read a .seq file with this imageFormat (%d) and this compressionFormat (%d)', ...
-                  strctMovInfo.m_iImageFormat,strctMovInfo.m_iCompressionFormat));
+                  strctMovInfo.m_iImageFormat,strctMovInfo.m_iCompressionFormat));  %#ok
 end
 fprintf('Done!\n');
 fclose(hFileID);
@@ -266,7 +291,7 @@ try
     parsejpg8(strFileName, iNextFrameJpegOffset);
     % if we get here, iFrameFooterSize==8 works, so we return
     return;
-catch  %#ok
+catch excp
     iFrameFooterSize=16;
     iNextFrameJpegOffset = ...
         1024 + 4 + iFirstFrameSizeInBytes + iFrameFooterSize + ...
@@ -276,7 +301,7 @@ catch  %#ok
         parsejpg8(strFileName, iNextFrameJpegOffset);
         % if we get here, iFrameFooterSize==16 works, so we return
         return;
-    catch  %#ok
+    catch excpTheSecond
         error('Motr:unableToDetermineJpegSeqFooterSize', ...
               'Unable to determine size of JPEG .seq footer');
     end
