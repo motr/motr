@@ -2,3 +2,6 @@
 *.mexmaci64
 *.mexa64
 .DS_Store
+defaultSegmentationParams.mat
+Deploy/MouseTrackProj
+Deploy/MouseTrackProj/*
