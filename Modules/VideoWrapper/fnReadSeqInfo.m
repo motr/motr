@@ -101,8 +101,8 @@ else
     % .seq file you're dealing with (all of them say they're version 4).
     % Daniel Wang at Norpix suggested the heuristic below.
     if iFrameMetadataSize>=2^31
-      % Probably a 5.19+ files
-      warning('iFrameMetadataSize is %d, which is crazy.  Assuming this is a Streampix 5.19+ .seq file.',iFrameMetadataSize);
+      % Probably a 5.19+ file
+      %warning('iFrameMetadataSize is %d, which is crazy.  Assuming this is a Streampix 5.19+ .seq file.',iFrameMetadataSize);
       iFrameMetadataSize=0;
       iFileMetadataSize=0;    
     end
