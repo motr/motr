@@ -37,7 +37,7 @@ g_bMouseHouse = false;
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to Repository (see VARARGIN)
-dbstop if error
+%dbstop if error
 handles.output = hObject;
 warning off
 setappdata(handles.figure1,'iCurrFrame',1);

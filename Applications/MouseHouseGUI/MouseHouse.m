@@ -23,7 +23,7 @@ function varargout = MouseHouse(varargin)
 
 % Edit the above text to modify the response to help MouseHouse
 
-% Last Modified by GUIDE v2.5 15-Mar-2011 08:23:44
+% Last Modified by GUIDE v2.5 25-Jul-2013 18:13:55
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -82,7 +82,7 @@ else
    clear global g_CaptainsLogDir g_logImIndex;
 end
 
-dbstop if error;
+%dbstop if error;
 
 % Choose default command line output for MouseHouse
 handles.output = hObject;
@@ -173,34 +173,34 @@ launchResultsEditor(jobsDirName, ...
 
 
 
-% --- Executes during object creation, after setting all properties.
-function hChooseExp_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to hChooseExp (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
-
-
-
-% --- Executes on selection change in hChooseExp.
-function hChooseExp_Callback(hObject, eventdata, handles)
-% hObject    handle to hChooseExp (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns hChooseExp contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from hChooseExp
-
-fnChooseExperiment(gcbf);
-clear global g_a2fDistToWall; % make fnSegmentForeground2 re-compute g_a2fDistToWall
+% % --- Executes during object creation, after setting all properties.
+% function hChooseExp_CreateFcn(hObject, eventdata, handles)
+% % hObject    handle to hChooseExp (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    empty - handles not created until after all CreateFcns called
+% 
+% % Hint: popupmenu controls usually have a white background on Windows.
+% %       See ISPC and COMPUTER.
+% if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+%     set(hObject,'BackgroundColor','white');
+% end
+% 
+% 
+% 
+% 
+% 
+% 
+% % --- Executes on selection change in hChooseExp.
+% function hChooseExp_Callback(hObject, eventdata, handles)
+% % hObject    handle to hChooseExp (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% 
+% % Hints: contents = cellstr(get(hObject,'String')) returns hChooseExp contents as cell array
+% %        contents{get(hObject,'Value')} returns selected item from hChooseExp
+% 
+% fnChooseExperiment(gcbf);
+% clear global g_a2fDistToWall; % make fnSegmentForeground2 re-compute g_a2fDistToWall
 
 
 
@@ -401,3 +401,15 @@ end
 u=get(gcbf,'userdata');
 u.clusterMode=clusterMode;
 set(gcbf,'userdata',u);
+
+
+% --- Executes on button press in chooseExperimentButton.
+function chooseExperimentButton_Callback(hObject, eventdata, handles)
+% hObject    handle to chooseExperimentButton (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+fnChooseExperiment(gcbf);
+clear global g_a2fDistToWall; % make fnSegmentForeground2 re-compute g_a2fDistToWall
+
+return

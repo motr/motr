@@ -5,26 +5,25 @@ u=get(hFig,'userdata');
 expSelected=u.expSelected;
 
 % get the listbox selection
-handles=guidata(hFig);
-iList = get(handles.hChooseExp, 'Value');
+%handles=guidata(hFig);
+%iList = get(handles.hChooseExp, 'Value');
 
-if iList == 1
-  % they selected "Choose experiment"
-  sExp = uigetdir('.', ...
-                  'Choose directory of an experiment');
-  if sExp==0  % means user hit Cancel button
+sExp = uigetdir('.', ...
+                'Choose directory of an experiment');
+if sExp==0  % means user hit Cancel button
+  fnUpdateGUIStatus(hFig);
+  return;
+end
+%sExp = fnConvertToAbsolutePath(sExp);
+if expSelected
+  expDirName=u.expDirName;
+  if any(strcmp(sExp, expDirName))
+    % this means they selected the current experiment
     fnUpdateGUIStatus(hFig);
+    %msgbox(['An experiment named ' sExp ' already exists']);
     return;
   end
-  %sExp = fnConvertToAbsolutePath(sExp);
-  if expSelected
-    expDirName=u.expDirName;
-    if any(strcmp(sExp, expDirName))
-      % this means they selected the current experiment
-      fnUpdateGUIStatus(hFig);
-      %msgbox(['An experiment named ' sExp ' already exists']);
-      return;
-    end
-  end
-  setCurrentExperiment(hFig, sExp);
+end
+setCurrentExperiment(hFig, sExp);
+  
 end
