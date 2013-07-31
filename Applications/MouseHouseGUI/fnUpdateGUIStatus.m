@@ -27,7 +27,7 @@ expSelected=u.expSelected;
 % set(handles.hChooseExp, 'String', listItem);
 % set(handles.hChooseExp, 'Value', iCurrListItem);
 
-% update the listbox of experiment names
+% update the experiment name
 if expSelected
     expDirName=u.expDirName;
     set(handles.experimentNameText, 'String', expDirName);

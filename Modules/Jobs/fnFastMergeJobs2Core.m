@@ -1,4 +1,9 @@
-function fnFastMergeJobs2Core(strMovieFileName, acstrJobOutputFileNames, strIdentitiesFile, strResultFolder)
+function strFileName=fnFastMergeJobs2Core(strMovieFileName, acstrJobOutputFileNames, strIdentitiesFile, strResultFolder)
+
+% Merge single jobs tracks into tracks for the whole video.  The returned
+% string is the filename the tracks were saved to, within the folder
+% indicated by strResultFolder.
+
 %% Fast Merge jobs
 strctID = load(strIdentitiesFile);
 
@@ -149,11 +154,12 @@ abLargeTimeGap(aiBigJumps) = 1;
 fprintf('%d large time gaps were detected. \n', sum(abLargeTimeGap));
 fSwapPenalty = -300;
 astrctTrackers = fnCorrectIdentitiesOnTheFly(astrctTrackers, strctID.strctIdentityClassifier, abLargeTimeGap, false,fSwapPenalty);
-fprintf('Saving Viterbi sequence as %s\n',['SequenceViterbi_',date,'.mat']);
 strFileName=['SequenceViterbi_',date,'_Pen_',num2str(fSwapPenalty),'.mat'];
+fprintf('Saving Viterbi sequence as %s\n',strFileName);
+% fprintf('Saving Viterbi sequence as %s\n',['SequenceViterbi_',date,'.mat']);
 save(fullfile(strResultFolder,strFileName), ...
      'astrctTrackers','strMovieFileName','afTimeStamp','afProcessingTime');
 
 fprintf('Done!\n');
 
-return;
+return

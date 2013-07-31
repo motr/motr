@@ -11,10 +11,25 @@ function status=determineTrackStatus(expDirName,clipFNAbs)
 
 % Check for the final results file
 [dummy,baseName]=fileparts(clipFNAbs);  % the seq file name, w/o .seq
-finalTrackingFN=fullfile(expDirName,'Results','Tracks',[baseName '.mat']);
+finalTrackingFN=fullfile(expDirName,'Results','Tracks',[baseName '_tracks.mat']);
 if exist(finalTrackingFN,'file')
     status=4;
-    return;
+    return
+end
+
+% Check for an old-style results file, rename it if present
+finalTrackingFNOldSchool=fullfile(expDirName,'Results','Tracks',[baseName '.mat']);
+if exist(finalTrackingFNOldSchool,'file')
+  success=copyfile(finalTrackingFNOldSchool,finalTrackingFN);
+  if success ,
+    delete(finalTrackingFNOldSchool);
+    status=4;
+    return
+  else
+    % If can't copy, just continue on as if the old-school file doesn't
+    % exist.  Hopefully we can just re-run Viterbi using the existing job
+    % files, and all will be good.
+  end
 end
 
 % Check for the per-job Jobargin files

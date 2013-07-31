@@ -1,4 +1,8 @@
-function [strctAdditionalInfo, strAdditionalInfoFile] = fnCreateSetupFile(strctClass,strctBackground,strJobFolder)
+function [strctAdditionalInfo, strAdditionalInfoFileName] = ...
+  fnCreateSetupFile(strctClass, ...
+                    strctBackground, ...
+                    strJobFolder, ...
+                    strAdditionalInfoFileNameRequested)
 %
 %Copyright (c) 2008 Shay Ohayon, California Institute of Technology.
 % This file is a part of a free software. you can redistribute it and/or modify
@@ -6,6 +10,11 @@ function [strctAdditionalInfo, strAdditionalInfoFile] = fnCreateSetupFile(strctC
 % the Free Software Foundation (see GPL.txt)
 global g_strctGlobalParam
 
+if ~exist('strAdditionalInfoFileNameRequested','var') || isempty(strAdditionalInfoFileNameRequested)
+  strAdditionalInfoFileName = fullfile(strJobFolder,'Setup.mat');
+else
+  strAdditionalInfoFileName=strAdditionalInfoFileNameRequested;
+end
         
 strctAdditionalInfo.strctBackground = strctBackground;
 strctAdditionalInfo.strctAppearance.m_iNumBins = 10;
@@ -37,6 +46,6 @@ else
     strctAdditionalInfo.m_strctMiceIdentityClassifier.afThres = strctClass.strctIdentityClassifier.m_afThres;
 end
 
-strAdditionalInfoFile = fullfile(strJobFolder,'Setup.mat');
-save(strAdditionalInfoFile,'strctAdditionalInfo');
+% strAdditionalInfoFileName = fullfile(strJobFolder,strAdditionalInfoFileNameRequested);
+save(strAdditionalInfoFileName,'strctAdditionalInfo');
 return;

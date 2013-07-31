@@ -159,7 +159,11 @@ tuningDirName = fullfile(expDirName, 'Tuning');
 jobsDirName = fullfile(expDirName, 'Jobs');
 resultsDirName = fullfile(expDirName, 'Results');
 tracksDirName = fullfile(resultsDirName, 'Tracks');
-trackFN = fullfile(tracksDirName, [clipBaseName '.mat']);
+trackFN = fullfile(tracksDirName, [clipBaseName '_tracks.mat']);
+if ~exist(trackFN,'file')
+  % try the old-school output file name
+  trackFN = fullfile(tracksDirName, [clipBaseName '.mat']);
+end
 classifiersFN = fullfile(tuningDirName, 'Identities.mat');
 launchResultsEditor(jobsDirName, ...
                     resultsDirName, ...

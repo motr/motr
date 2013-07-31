@@ -66,7 +66,8 @@ for i=1:nClip
   clipFNAbsThis = clipFNAbs{i};  % file name of this clip --ALT
   %clipFNThisAbs=fullfile(expDirName,clipFNThis);
   [dummy, clipBaseName] = fileparts(clipFNAbsThis);  %#ok
-  sTrackFile = fullfile(tracksDirName, [clipBaseName '.mat']);
+  %sTrackFile = fullfile(tracksDirName, [clipBaseName '.mat']);
+  sTrackFile = fullfile(tracksDirName, [clipBaseName '_tracks.mat']);
   %bMissing = false;  % == ~isempty(aiMissing) --ALT
   if trackStatus(i) == 2  % haven't started processing the clip
     % nothing to do
@@ -216,7 +217,7 @@ if ~clusterMode
         fnHouseIdentities(astrctTrackers, ...
                           strctMovieInfo, ...
                           classifiersFN);  %#ok
-      sTrackFile = fullfile(tracksDirName, [clipBaseName '.mat']);
+      sTrackFile = fullfile(tracksDirName, [clipBaseName '_tracks.mat']);
       save(sTrackFile, 'astrctTrackers', 'strMovieFileName');
       %fnUpdateStatus(handles, 'expClipStatus', i, 4);
       %fnSetClipStatusCode(handles, i, 4);
@@ -234,7 +235,8 @@ else
       clipFNAbsThis = clipFNAbs{i};
       [dummy, clipBaseName] = fileparts(clipFNAbsThis);  %#ok
       sRawTrackFile = fullfile(resultsDirName, clipBaseName, 'SequenceRAW.mat');
-      sTrackFile = fullfile(tracksDirName, [clipBaseName '.mat']);
+      % sTrackFile = fullfile(tracksDirName, [clipBaseName '.mat']);
+      sTrackFile = fullfile(tracksDirName, [clipBaseName '_tracks.mat']);
       strctJob.m_sFunction = 'fnPostTracking';
       strctJob.m_acExperimentClips = clipFNAbs;
       strctJob.m_sExpName = expDirName;
