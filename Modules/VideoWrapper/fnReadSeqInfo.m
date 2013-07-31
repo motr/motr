@@ -17,18 +17,18 @@ fseek(hFileID,0,'bof');
 if ~(strcmp(sprintf('%X',fread(hFileID,1,'uint32')),'FEED'))
     % Attempt to fix SEQ header.
     fclose(hFileID);
-    fprintf('Header is corrupted for file %s!\n', strSeqFileName);
-    strResponse = input('Do you want to fix the file [Y]/[N]? : ','s');
-    bFix = strResponse(1) == 'Y' || strResponse(1) == 'y';
-    if bFix
-        fnFixSeqHeader(strSeqFileName); 
-        hFileID = fopen(strSeqFileName);
-        fseek(hFileID,0,'bof');
-        assert(strcmp(sprintf('%X',fread(hFileID,1,'uint32')),'FEED'));
-    else
-        strctMovInfo = [];
-        return;
-    end;
+    error('Header is corrupted for file %s!\n', strSeqFileName);
+%     strResponse = input('Do you want to fix the file [Y]/[N]? : ','s');
+%     bFix = strResponse(1) == 'Y' || strResponse(1) == 'y';
+%     if bFix
+%         fnFixSeqHeader(strSeqFileName); 
+%         hFileID = fopen(strSeqFileName);
+%         fseek(hFileID,0,'bof');
+%         assert(strcmp(sprintf('%X',fread(hFileID,1,'uint32')),'FEED'));
+%     else
+%         strctMovInfo = [];
+%         return;
+%     end;
 end;
 assert(strcmp(char(fread(hFileID,10,'uint16'))','Norpix seq')); %#ok<FREAD>
 fseek(hFileID,4,'cof');

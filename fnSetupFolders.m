@@ -1,28 +1,29 @@
 function fnSetupFolders()
   house_root_dir_name=fileparts(mfilename('fullpath'));
     % the root directory for the MouseHouse code
-  %addpath(desvn(genpath(house_root_dir_name)));
+  %addpath(degit(genpath(house_root_dir_name)));
   %if exist('MouseTrackProj.prj','file')
-  %  rmpath(desvn(genpath(fullfile(house_root_dir_name,'Deploy'))));
+  %  rmpath(degit(genpath(fullfile(house_root_dir_name,'Deploy'))));
   %end
   addpath(house_root_dir_name);
-  addpath(desvn(genpath(fullfile(house_root_dir_name,'Applications'))));
-  addpath(desvn(genpath(fullfile(house_root_dir_name,'Config'))));
-  addpath(desvn(genpath(fullfile(house_root_dir_name,'ExtraModules'))));
-  addpath(desvn(genpath(fullfile(house_root_dir_name,'Modules'))));
+  addpath(degit(genpath(fullfile(house_root_dir_name,'Applications'))));
+  addpath(degit(genpath(fullfile(house_root_dir_name,'Config'))));
+  addpath(degit(genpath(fullfile(house_root_dir_name,'ExtraModules'))));
+  addpath(degit(genpath(fullfile(house_root_dir_name,'Modules'))));
+  addpath(degit(genpath(fullfile(house_root_dir_name,'Tests'))));
 end
 
-function path_no_svn=desvn(path_raw)
-  % eliminate .svn directories from a path string
+function path_no_git=degit(path_raw)
+  % eliminate .git directories from a path string
   path_raw_as_array=split_path(path_raw);
-  path_no_svn_as_array=cell(0,1);
+  path_no_git_as_array=cell(0,1);
   for i=1:length(path_raw_as_array)
-    k=strfind(path_raw_as_array{i},'.svn');
+    k=strfind(path_raw_as_array{i},'.git');
     if isempty(k)
-      path_no_svn_as_array{end+1}=path_raw_as_array{i};  %#ok
+      path_no_git_as_array{end+1}=path_raw_as_array{i};  %#ok
     end
   end
-  path_no_svn=combine_path(path_no_svn_as_array);
+  path_no_git=combine_path(path_no_git_as_array);
 end
 
 function path_as_array=split_path(path)
