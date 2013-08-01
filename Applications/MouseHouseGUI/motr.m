@@ -1,5 +1,0 @@
-function motr()
-
-MouseHouse();
-
-end
