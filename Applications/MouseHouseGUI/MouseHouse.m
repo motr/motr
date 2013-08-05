@@ -97,6 +97,8 @@ initUserData(hObject);
 %fnUpdateStatus(handles);
 %fnUpdateStatusMinimal(handles);
 fnUpdateGUIStatus(hObject);
+updateLocalClusterRadiobuttons(hObject);
+updateEnablementOfLocalClusterRadiobuttons(hObject);
 
 % Load various algorithm parameters from the XML file
 g_strctGlobalParam = ...

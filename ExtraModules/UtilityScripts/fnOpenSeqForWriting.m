@@ -1,4 +1,4 @@
-function strctSeq = fnOpenSeqForWriting(strFileName, fFPS, fCompressionRatio)
+function strctSeq = fnOpenSeqForWriting(strFileName, fFPS, iQuality)
 
 strctSeq.m_strFileName = strFileName;
 if ~exist('fFPS','var')
@@ -6,10 +6,10 @@ if ~exist('fFPS','var')
 else 
     strctSeq.m_fFPS = fFPS;
 end;
-if ~exist('fCompressionRatio','var')
-    strctSeq.m_fCompressionRatio = 100;
+if ~exist('iQuality','var')
+    strctSeq.m_iQuality = 100;
 else 
-    strctSeq.m_fCompressionRatio = fCompressionRatio;
+    strctSeq.m_iQuality = iQuality;
 end;
 strctSeq.m_iNumFrames = 0;
 
@@ -21,6 +21,6 @@ if strctSeq.m_hFileID == 0
 end;
 fwrite(strctSeq.m_hFileID, zeros(1,1024), 'uchar'); % Write empty header
 
-strctSeq.m_strTmpFile = [tempname,'.jpg'];
+strctSeq.m_strTmpFile = [tempname(),'.jpg'];
 
 return;
