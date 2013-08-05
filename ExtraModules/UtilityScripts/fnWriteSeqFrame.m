@@ -13,7 +13,7 @@ iTimeStampA = 1000^2*round(strctSeq.m_iNumFrames/1000) ;
 iTimeStampB = mod(strctSeq.m_iNumFrames,1000) ;
 strctSeq.m_iNumFrames = strctSeq.m_iNumFrames + 1;
 
-imwrite(a2iFrame,strctSeq.m_strTmpFile,'jpeg','Quality',strctSeq.m_fCompressionRatio);
+imwrite(a2iFrame,strctSeq.m_strTmpFile,'jpeg','Quality',strctSeq.m_iQuality);
 hFileIDtmp = fopen(strctSeq.m_strTmpFile,'rb');
 aiJPGBuffer = fread(hFileIDtmp,inf,'uchar=>uchar');
 fclose(hFileIDtmp);
