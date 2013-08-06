@@ -1,6 +1,4 @@
 classdef CatalyticController < handle
-% This is Controller, a class to represent the 
-% controller for the main window of the groundswell application.
 
 properties
   fig=[];  % the figure
@@ -16,7 +14,7 @@ properties
   nframes = [];
   fid = [];
   timestamps=[];
-  flipud=0;
+  doFlipUpDown=false;
   nflies=[];
   colors0
   colororder
@@ -158,6 +156,13 @@ properties
   connectfirstframe
   connectfirstfly
   
+  hautotrack
+  autotrackfly
+  manytrackflies
+  hmanytrack
+  bgcurr
+  stoptracking
+  
   ang_dist_wt
   maxjump
   lighterthanbg
@@ -191,7 +196,7 @@ methods
     self = initializeMainAxes(self);
     
     % initialize state
-    self.flipud = 0;
+    self.doFlipUpDown = 0;
     self.nflies = length(self.trx);
     [self.colors0,self.colororder,self.colors] = ...
       colorOrderFromNumberOfAnimals(self.nflies);
@@ -647,7 +652,7 @@ methods
     
     self.f = round(get(hObject,'value'));
     setFrameNumber(self,hObject);
-    PlotFrame(self);
+    self.plotFrame();
     % guidata(hObject,self);
     
   end  % method
@@ -675,7 +680,7 @@ methods
       set(hObject,'string',num2str(self.f));
     end
     setFrameNumber(self,self.f);
-    PlotFrame(self);
+    self.plotFrame();
     % guidata(hObject,self);
     
   end  % method
@@ -746,20 +751,16 @@ methods
     %   return;
     % end
     
-    try
-      contents = get(self.nexterrortypemenu,'string');
-      if length(contents) == 1,
-        s = contents;
-      else
-        v = get(self.nexterrortypemenu,'value');
-        if v > length(contents),
-          set(self.nexterrortypemenu,'value',length(contents));
-          v = length(contents);
-        end
-        s = contents{v};
+    contents = get(self.nexterrortypemenu,'string');
+    if length(contents) == 1,
+      s = contents;
+    else
+      v = get(self.nexterrortypemenu,'value');
+      if v > length(contents),
+        set(self.nexterrortypemenu,'value',length(contents));
+        v = length(contents);
       end
-    catch
-      keyboard;
+      s = contents{v};
     end
     
     % what is the next type of error
@@ -859,15 +860,7 @@ methods
         elseif ai == length( self.undolist )
           self.undolist = self.undolist{1:end-1};
         else
-          try % untested
-            self.undolist = self.undolist{[1:ai-1 ai+1:length( self.undolist )]};
-          catch err
-            self.restorePointer(oldPointer);
-            self.undolist
-            ai  %#ok
-            self.seq
-            rethrow( err )
-          end
+          self.undolist = self.undolist{[1:ai-1 ai+1:length( self.undolist )]};
         end
         % remove from doneseqs list
         if length( self.doneseqs ) == 1
@@ -886,15 +879,7 @@ methods
               elseif di == length( self.doneseqs )
                 self.doneseqs = self.doneseqs(1:end-1);
               else
-                try % untested
-                  self.doneseqs = self.doneseqs([1:di-1 di+1:length( self.doneseqs )]);
-                catch err
-                  self.restorePointer(oldPointer);
-                  self.doneseqs
-                  di  %#ok
-                  self.seq
-                  rethrow( err )
-                end
+                self.doneseqs = self.doneseqs([1:di-1 di+1:length( self.doneseqs )]);
               end
               break
             end
@@ -976,11 +961,7 @@ methods
     end
     
     for ui = top:-1:1
-      try
-        a = strcmp( self.undolist{ui}{1}, 'delete' );  %#ok
-      catch % happened once, not replicated
-        keyboard
-      end
+      a = strcmp( self.undolist{ui}{1}, 'delete' );  %#ok
       if strcmp( self.undolist{ui}{1}, 'delete' )
         %fprintf( 1, 'undoing deletion item %d\n', ui );
         %f = self.undolist{ui}{2};
@@ -1155,15 +1136,7 @@ methods
     elseif ui == length( self.undolist )
       self.undolist(end) = [];
     elseif ui > 0
-      try % untested
-        self.undolist = self.undolist{[1:ui-1 ui+1:length( self.undolist )]};
-      catch err
-        keyboard
-        self.undolist
-        ui  %#ok
-        self.seq
-        rethrow( err )
-      end
+      self.undolist = self.undolist{[1:ui-1 ui+1:length( self.undolist )]};
     end
     
     self.nselect = 0;
@@ -1171,7 +1144,7 @@ methods
     self.needssaving = 1;
     % guidata(hObject,self);
     self.updateControlVisibilityAndEnablement();
-    self.PlotFrame();  % re-draw the current frame
+    self.plotFrame();  % re-draw the current frame
     self.restorePointer(oldPointer);
   end  % method
   
@@ -1456,7 +1429,7 @@ methods
       self.lastframe = self.f;
       self.f = nextnearframe;
       setFrameNumber(self,hObject);
-      PlotFrame(self);
+      self.plotFrame();
       
       % guidata(hObject,self);
       
@@ -1496,7 +1469,7 @@ methods
       self.lastframe = self.f;
       self.f = nextnearframe;
       setFrameNumber(self,hObject);
-      PlotFrame(self);
+      self.plotFrame();
       
       % guidata(hObject,self);
       
@@ -1556,7 +1529,7 @@ methods
       self.lastframe = self.f;
       self.f = nextnearframe;
       setFrameNumber(self,hObject);
-      PlotFrame(self);
+      self.plotFrame();
       
       % guidata(hObject,self);
       
@@ -1596,7 +1569,7 @@ methods
       self.lastframe = self.f;
       self.f = nextnearframe;
       setFrameNumber(self,hObject);
-      PlotFrame(self);
+      self.plotFrame();
       
       % guidata(hObject,self);
       
@@ -2236,7 +2209,7 @@ methods
       zoomInOnSeq(self,seq);
     end
     self.stoptracking = false;
-    self.fixTrackFlies(fly,f0,f1,self);
+    self.trackFlies(fly,f0,f1);
     
     if ~isempty( self.trackingstoppedframe )
       %    self.f = self.trackingstopped;
@@ -2245,7 +2218,7 @@ methods
       %self=rmfield( self, 'trackingstoppedframe' );
       
       %    setFrameNumber( self, hobject );
-      %    PlotFrame( self );
+      %    plotFrame( self );
     end
     
     fixDeathEvent(self,fly);
@@ -2346,7 +2319,8 @@ methods
     % eventdata  reserved - to be defined in a future version of MATLAB
     % self    structure with self and user data (see GUIDATA)
     
-    %self = retrack_settings(self);
+    % retrack_settings(self);
+    AutoTrackSettingsController(self);
     % guidata(hObject,self);
   end  % method
   
@@ -2514,10 +2488,10 @@ methods
     flies = self.manytrackflies;
     
     % save to undo list
-    oldtrx=zeros(1,length(flies));
+    oldtrx=cell(1,length(flies));
     for i = 1:length(flies),
       fly = flies(i);
-      oldtrx(i) = CatalyticController.getPartOfTrack(self.trx(fly),f0,f1);
+      oldtrx{i} = CatalyticController.getPartOfTrack(self.trx(fly),f0,f1);
     end
     self.undolist{end+1} = {'manytrack',[f0,f1],flies,oldtrx};
     
@@ -2532,7 +2506,7 @@ methods
       zoomInOnSeq(self,seq);
     end
     self.stoptracking = false;
-    self.fixTrackFlies(flies,f0,f1,self);
+    self.trackFlies(flies,f0,f1);
     for fly = flies(:)',
       fixDeathEvent(self,fly);
     end
@@ -2644,7 +2618,8 @@ methods
     % eventdata  reserved - to be defined in a future version of MATLAB
     % self    structure with self and user data (see GUIDATA)
     
-    %self = retrack_settings(self);
+    % retrack_settings(self);
+    AutoTrackSettingsController(self);
     % guidata(hObject,self);
   end  % method
   
@@ -2856,7 +2831,7 @@ methods
         if self.f < self.nframes,
           self.f = self.f+1;
           setFrameNumber(self,self.f);
-          PlotFrame(self);
+          self.plotFrame();
           % guidata(hObject,self);
         end
         
@@ -2865,7 +2840,7 @@ methods
         if self.f > 1,
           self.f = self.f-1;
           setFrameNumber(self,self.f);
-          PlotFrame(self);
+          self.plotFrame();
           % guidata(hObject,self);
         end
         
@@ -2881,8 +2856,8 @@ methods
     % hObject    handle to flipimage_checkbox (see GCBO)
     % eventdata  reserved - to be defined in a future version of MATLAB
     % self    structure with self and user data (see GUIDATA)
-    self.flipud = get( hObject, 'value' );
-    PlotFrame( self )
+    self.doFlipUpDown = get( hObject, 'value' );
+    plotFrame( self )
     % guidata( hObject, self )
   end  % method
   
@@ -3112,7 +3087,7 @@ methods
         %uiresume(self.fig);
         return
       end
-      self.flipud = 0;
+      self.doFlipUpDown = 0;
       self.nflies = length(self.trx);
       % self = setFlyColors(self);
       [self.colors0,self.colororder,self.colors] = ...
@@ -3127,25 +3102,37 @@ methods
       self.undolist = {};
       self.needssaving = 0;  % don't need to save b/c just opened
       
-      self.bgthresh = 10;
       %self.lighterthanbg = 1;
       self.bgcolor = nan;
-      [self.ang_dist_wt,self.maxjump,bgtype,bgmed,bgmean,...
-        tmp,self.bgthresh] = ...
-        read_ann(self.annname,'ang_dist_wt','max_jump',...
-        'bg_algorithm','background_median','background_mean','bg_type',...
-        'n_bg_std_thresh_low');
-      if tmp == 0,
+      [ang_dist_wt, ...
+       max_jump, ...
+       bg_algorithm, ...
+       background_median, ...
+       background_mean,...
+       bg_type, ...
+       n_bg_std_thresh_low] = ...
+        read_ann(self.annname, ...
+                 'ang_dist_wt', ...
+                 'max_jump',...
+                 'bg_algorithm', ...
+                 'background_median', ...
+                 'background_mean', ...
+                 'bg_type',...
+                 'n_bg_std_thresh_low');
+      self.ang_dist_wt=ang_dist_wt;
+      self.maxjump=max_jump;
+      self.bgthresh=fif(isempty(n_bg_std_thresh_low),10,n_bg_std_thresh_low);
+      if bg_type == 0,
         self.lighterthanbg = 1;
-      elseif tmp == 1,
+      elseif bg_type == 1,
         self.lighterthanbg = -1;
       else
         self.lighterthanbg = 0;
       end
-      if strcmpi(bgtype,'median'),
-        self.bgmed = bgmed;
+      if strcmpi(bg_algorithm,'median'),
+        self.bgmed = background_median;
       else
-        self.bgmed = bgmean;
+        self.bgmed = background_mean;
       end
       
       % initialize data structures
@@ -3234,7 +3221,7 @@ methods
     %   uiresume(self.fig);
     %   return
     % end
-    self.flipud = 0;
+    self.doFlipUpDown = 0;
     self.nflies = length(self.trx);
     % setFlyColors(self);
     [self.colors0,self.colororder,self.colors] = ...
@@ -5213,7 +5200,7 @@ methods
     
     if nargin < 3 || ~isfirstframe,
       setFrameNumber(self);
-      PlotFrame(self);
+      self.plotFrame();
       zoomInOnSeq(self);
     end
   end  % method
@@ -5235,8 +5222,10 @@ methods
       
       self.f = f;
       setFrameNumber(self);
-      PlotFrame(self);
-      drawnow;
+      self.plotFrame();
+      drawnow('update');
+      drawnow('expose');
+      %drawnow;
       %self = guidata(hObject);
       
       if ~self.isplaying,
@@ -5250,7 +5239,7 @@ methods
     if self.isplaying,
       self.f = self.seq.frames(1);
       setFrameNumber(self);
-      PlotFrame(self);
+      self.plotFrame();
     end
     
     self.isplaying = false;
@@ -5584,14 +5573,14 @@ methods
   
   
   % -----------------------------------------------------------------------
-  function PlotFrame(self)
+  function plotFrame(self)
     % plot a single video frame
     % splintered from fixerrorsgui 6/21/12 JAB
     
     im = self.readframe(self.f);
-    if( self.flipud )
+    if( self.doFlipUpDown )
       for channel = 1:size( im, 3 )
-        im(:,:,channel) = flipud( im(:,:,channel) );  %#ok
+        im(:,:,channel) = flipud( im(:,:,channel) );
       end
     end
     set(self.him,'cdata',im);
@@ -5876,6 +5865,350 @@ methods
     end      
   end  % method
 
+  % -----------------------------------------------------------------------  
+  function trackFlies(self,flies,f0,f1)
+    % track multiple flies
+    % splintered from fixerrorsgui 6/23/12 JAB
+    
+    %guidata(self.figure1,self);
+    
+    minPrior = .01;
+    se = strel('disk',1);
+    nflies = length(flies);
+    mu0 = zeros(nflies,2);
+    S0 = zeros([2,2,nflies]);
+    priors0 = zeros(1,nflies);
+    for i = 1:nflies,
+      fly = flies(i);
+      j = self.trx(fly).off+(f0);
+      mu0(i,:) = [self.trx(fly).x(j),self.trx(fly).y(j)];
+      S0(:,:,i) = axes2cov(self.trx(fly).a(j)*2,self.trx(fly).b(j)*2,self.trx(fly).theta(j));
+      priors0(i) = self.trx(fly).a(j)*self.trx(fly).b(j);
+    end
+    priors0 = priors0 / sum(priors0);
+    for f = f0+1:f1
+      
+      drawnow('update');
+      drawnow('expose');
+      %self = guidata(self.fig);
+      if ~isempty(self.stoptracking) && self.stoptracking
+        break;
+      end
+      
+      % get foreground/background classification around flies
+      [isfore,dfore,xpred,ypred,thetapred,r0,r1,c0,c1,~] = backgroundSubtraction(self,flies,f);
+      
+      [cc,ncc] = bwlabel(isfore);
+      isdeleted = [];
+      for fly2 = 1:self.nflies,
+        if ismember(fly2,flies), continue; end
+        if ~isalive(self.trx(fly2),f), continue; end
+        i2 = self.trx(fly2).off+(f);
+        if self.trx(fly2).x(i2)-(2*self.trx(fly2).a(i2)+5) > c1 || ...
+            self.trx(fly2).x(i2) + (2*self.trx(fly2).a(i2)+5)< c0 || ...
+            self.trx(fly2).y(i2) + (2*self.trx(fly2).a(i2)+5)< r0 || ...
+            self.trx(fly2).y(i2) - (2*self.trx(fly2).a(i2)+5)> r1,
+          continue;
+        end
+        bw = ellipsepixels([self.trx(fly2).x(i2),self.trx(fly2).y(i2),...
+          self.trx(fly2).a(i2)*4,self.trx(fly2).b(i2)*4,self.trx(fly2).theta(i2)],...
+          [r0,r1,c0,c1]);
+        j = 1;
+        while true,
+          if j > ncc,
+            break;
+          end
+          
+          if ismember(j,isdeleted),
+            j = j + 1;
+            continue;
+          end
+          fracoverlap = sum(dfore((cc==j) & bw)) / sum(dfore(cc==j));
+          if nflies == 1
+            testfracoverlap = 0.75;
+          else
+            testfracoverlap = 0.85;
+          end
+          if fracoverlap > testfracoverlap
+            isfore(cc==j) = false;
+            isdeleted(end+1) = j;  %#ok
+            cc(cc==j) = 0;
+          elseif fracoverlap > 0
+            if nflies == 1
+              bw = imdilate(bw,se);
+            end
+            isfore(bw) = false;
+            cc(bw) = 0;
+            tmp = cc == j;
+            tmp = imopen(tmp,se);
+            %[cctmp,ncctmp] = bwlabel(tmp);
+            %if ncctmp > 1
+            %  areas = regionprops(cctmp,'area');
+            %  areas = getstructarrayfield(areas,'Area');
+            %  k = argmax(areas);
+            %else
+            %  k = 1;
+            %end
+            %tmp = cctmp==k;
+            isfore(cc==j) = false;
+            cc(cc==j) = 0;
+            cc(tmp) = j;
+            isfore(tmp) = true;
+            [cctmp,ncctmp] = bwlabel(tmp);
+            for k = 2:ncctmp,
+              ncc = ncc+1;
+              cc(cctmp==k) = ncc;
+            end
+          end
+          j = j + 1;
+        end
+      end
+      % choose the closest connected component
+      if ~any(isfore(:)),
+        msgbox(sprintf('Frame %d: Could not find the selected fly, quitting.',f));
+        self.trackingstoppedframe = f;
+        return;
+      end
+      
+      if nflies == 1
+        % fit an ellipse
+        [tmp1,~,cc] = unique(cc);
+        cc = reshape(cc,size(isfore))-1;
+        if tmp1(1) == 0
+          ncc = length(tmp1)-1;
+        end
+        xfit = zeros(1,ncc);
+        yfit = zeros(1,ncc);
+        thetafit = zeros(1,ncc);
+        for j = 1:ncc,
+          [y,x] = find(cc==j);
+          w = dfore(cc==j);
+          [nmu,S] = weighted_mean_cov([x,y],w(:));
+          xfit(j) = nmu(1);
+          yfit(j) = nmu(2);
+          [~,~,thetafit(j)] = cov2ell(S);
+        end
+        xfit = xfit + c0 - 1;
+        yfit = yfit + r0 - 1;
+        if ncc == 1,
+          j = 1;
+        else
+          err = (xpred - xfit).^2 + (ypred - yfit).^2 + self.ang_dist_wt*(modrange(thetapred - thetafit,-pi/2,pi/2)).^2;
+          j = argmin(err);
+        end
+        mu(1,1) = xfit(j);
+        mu(1,2) = yfit(j);
+        priors = 1;
+        
+      else
+        % use GMM to fit multiple ellipses
+        w = dfore(isfore);
+        w = w / max(w);
+        mix = gmm(2, nflies, 'full');
+        mix.centres = mu0;
+        mix.covars = S0;
+        mix.priors = priors0;
+        [y,x] = find(isfore);
+        x = x + c0 - 1;
+        y = y + r0 - 1;
+        [mu,S,priors] = mygmm([x(:),y(:)],nflies,'start',mix,'weights',w)
+        if any(priors < minPrior),
+          msgbox(sprintf('Frame %d: Prior for a fly got too small, aborting.',f));
+          self.trackingstoppedframe = f;
+          return;
+        end
+      end
+      
+      % update trx structures
+      for i = 1:nflies,
+        fly = flies(i);
+        j = self.trx(fly).off+(f);
+        self.trx(fly).x(j) = mu(i,1);
+        self.trx(fly).y(j) = mu(i,2);
+        [a,b,theta] = cov2ell(S(:,:,i));
+        self.trx(fly).a(j) = a/2;
+        self.trx(fly).b(j) = b/2;
+        dtheta = modrange(theta-self.trx(fly).theta(j-1),-pi/2,pi/2);
+        self.trx(fly).theta(j) = modrange(self.trx(fly).theta(j-1)+dtheta,-pi,pi);
+        self.trx(fly).nframes = length(self.trx(fly).x);
+        self.trx(fly).endframe = self.trx(fly).firstframe + self.trx(fly).nframes - 1;
+        if isfield( self, 'timestamps' ) && length( self.timestamps ) >= f && isfield( self.trx(fly), 'timestamps' )
+          self.trx(fly).timestamps(j) = self.timestamps(f);
+        end
+      end
+      self.f = f;
+      if self.trx(fly).endframe < self.f
+        self.trx(fly).endframe = f;
+      end
+      %guidata(self.fig,self);
+      
+      % display progress, if applicable
+      if get(self.manytrackshowtrackingbutton,'value') || get( self.showtrackingbutton, 'value' )
+        self.plotFrame();
+        xlim = get(self.mainaxes,'xlim');
+        ylim = get(self.mainaxes,'ylim');
+        minx = min(mu(:,1));
+        maxx = max(mu(:,1));
+        miny = min(mu(:,2));
+        maxy = max(mu(:,2));
+        if minx < xlim(1) || maxx > xlim(2) || miny < ylim(1) || maxy > ylim(2)
+          seq.frames = [max(f0,f-20),min(f1,f+20)];
+          seq.flies = flies;
+          fix_ZoomInOnSeq(self,seq);
+        end
+      else
+        set(self.frameedit,'string',sprintf('%05d',f));
+      end
+      
+      mu0 = mu;
+      S0 = S;
+      priors0 = priors;
+    end
+    
+  end  % method
+  
+  
+  % -----------------------------------------------------------------------
+  function [isfore,dfore,xpred,ypred,thetapred,r0,r1,c0,c1,im] = backgroundSubtraction(self,flies,f)
+    trx = self.trx(flies);
+    nflies = length(flies);
+    boxrad = self.maxjump;
+    
+    xpred = zeros(1,nflies);
+    ypred = zeros(1,nflies);
+    thetapred = zeros(1,nflies);
+    for j = 1:nflies,
+      i = max( trx(j).off+(f), 2 ); % first frame
+      x1 = trx(j).x(i-1);
+      y1 = trx(j).y(i-1);
+      theta1 = trx(j).theta(i-1);
+      if i == 2,
+        xpred(j) = x1;
+        ypred(j) = y1;
+        thetapred(j) = theta1;
+      else
+        x2 = trx(j).x(i-2);
+        y2 = trx(j).y(i-2);
+        theta2 = trx(j).theta(i-2);
+        [xpred(j),ypred(j),thetapred(j)] = cvpred(x2,y2,theta2,x1,y1,theta1);
+      end
+    end
+    
+    r0 = max(floor(min(ypred)-boxrad),1); r1 = min(ceil(max(ypred)+boxrad),self.nr);
+    c0 = max(floor(min(xpred)-boxrad),1); c1 = min(ceil(max(xpred)+boxrad),self.nc);
+    im = self.readframe(f);
+    if( self.doFlipUpDown )
+      for channel = 1:size( im, 3 )
+        im(:,:,channel) = flipud( im(:,:,channel) );
+      end
+    end
+    im = double(im(r0:r1,c0:c1));
+    
+    bg = self.bgcurr(r0:r1,c0:c1);
+    dfore = im - bg;
+    if self.lighterthanbg == 1
+      dfore = max(dfore,0);
+    elseif self.lighterthanbg == -1
+      dfore = max(-dfore,0);
+    else
+      dfore = abs(dfore);
+    end
+    isfore = dfore >= self.bgthresh;
+    se = strel('disk',1);
+    isfore = imclose(isfore,se);
+    isfore = imopen(isfore,se);
+  end  % method
+    
+  
+  % -----------------------------------------------------------------------
+  function bgmed = getPersistentBackgroundImage(self)
+    bgmed=self.bgmed;
+  end
+
+  
+  % -----------------------------------------------------------------------
+  function bgthresh = getBackgroundThreshold(self)
+    bgthresh=self.bgthresh;
+  end
+
+  
+  % -----------------------------------------------------------------------
+  function incrementBackgroundThreshold(self,change)
+    self.bgthresh=self.bgthresh+change;
+  end
+
+  
+  % -----------------------------------------------------------------------
+  function lighterthanbg = getForegroundSign(self)
+    lighterthanbg=self.lighterthanbg;
+  end
+
+  
+  % -----------------------------------------------------------------------
+  function setForegroundSign(self,newValue)
+    self.lighterthanbg=newValue;
+  end
+
+  
+  % -----------------------------------------------------------------------
+  function maxjump = getMaximumJump(self)
+    maxjump=self.maxjump;
+  end
+
+  
+  % -----------------------------------------------------------------------
+  function bgcolor = getBackgroundColor(self)
+    bgcolor=self.bgcolor;
+  end
+
+  
+  % -----------------------------------------------------------------------
+  function setBackgroundColor(self,newValue)
+    self.bgcolor=newValue;
+  end
+
+  
+  % -----------------------------------------------------------------------
+  function setCurrentBackgroundImageToPersistent(self)
+    self.bgcurr=self.bgcurr;
+  end
+  
+  
+  % -----------------------------------------------------------------------
+  function setCurrentBackgroundImage(self,newValue)
+    self.bgcurr=newValue;
+  end
+
+  
+  % -----------------------------------------------------------------------
+  function autotrackfly = getAutoTrackFly(self)
+    autotrackfly=self.autotrackfly;
+  end
+
+  
+  % -----------------------------------------------------------------------
+  function autotrackframe = getAutoTrackFrame(self)
+    autotrackframe=self.autotrackframe;
+  end
+
+  
+  % -----------------------------------------------------------------------
+  function value = getNRows(self)
+    value=self.nr;
+  end
+
+  
+  % -----------------------------------------------------------------------
+  function value = getNCols(self)
+    value=self.nc;
+  end
+
+  
+  % -----------------------------------------------------------------------
+  function incrementMaximumJump(self,change)
+    self.maxjump=round(self.maxjump+change);
+  end
+  
 end % methods
   
 % -------------------------------------------------------------------------  
@@ -5922,7 +6255,7 @@ methods (Static=true)
     for hchild = children,
       try
         set(hchild,'enable',v);
-      catch
+      catch  %#ok
       end
     end
   end  % method

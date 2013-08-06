@@ -1,9 +1,8 @@
-function saveAnnFromShayTrack(annFileName,astrctTrackers,backgroundFrame)
+function annFileFromShayTrack(annFileName,astrctTrackers,backgroundFrame)
 
 % Creates a Ctrax-style .ann file from a Motr track structure.
 % The index of each track in the .ann file is the same as the mouse index
 % in the astrctTrackers structure.
-% backgroundFrame is assumed to be uint8
 
 %astrctTrackers(k).m_afX(iFirst:iLast);
 
@@ -43,9 +42,9 @@ fprintf(fid,'center_dampen:%f\n',0);
 fprintf(fid,'angle_dampen:%f\n',0.5);
 fprintf(fid,'ang_dist_wt:%f\n',ang_dist_wt);
 fprintf(fid,'bg_algorithm:%s\n','median');
-backgroundFrameReal=double(backgroundFrame);
-fprintf(fid,'background median:%d\n',8*numel(backgroundFrameReal));
-fwrite(fid,backgroundFrameReal,'double');
+backgroundFrame=double(backgroundFrame);
+fprintf(fid,'background median:%d\n',8*numel(backgroundFrame));
+fwrite(fid,backgroundFrame,'double');
 fprintf(fid,'end header\n');
 
 if nMice>0

@@ -9,8 +9,18 @@ s=load(motrTrackFileName);
 astrctTrackers=s.astrctTrackers;
 
 % Compute the background frame
-backgroundFrame=seqMedianFrameFromNonRandomSample(seqFileName);
+%[medianFrame,medianAbsDiffFrame]=seqMedianFrameFromNonRandomSample(seqFileName);
+medianFrame=seqMedianFrameFromNonRandomSample(seqFileName);
+
+% % Take the raw median abs diff frame, and bound the values in it, to
+% % prevent crazy high or crazy low values
+% % We want a factor three between the min and max, centered on the median
+% % value over the whole frame
+% grandMedianAbsDiff=median(medianAbsDiffFrame(:));
+% minMedianAbsDiff=grandMedianAbsDiff/sqrt(3);
+% maxMedianAbsDiff=grandMedianAbsDiff*sqrt(3);
+% scaleFrame=min(max(minMedianAbsDiff,medianAbsDiffFrame),maxMedianAbsDiff);
 
 % convert to ann format, save
 %annFileName=replaceExtension(seqFileName,'.ann');
-annFileFromShayTrack(annFileName,astrctTrackers,backgroundFrame);
+annFileFromShayTrack(annFileName,astrctTrackers,medianFrame);

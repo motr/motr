@@ -1,4 +1,4 @@
-function median_frame=seqMedianFrameFromNonRandomSample(input_file_name,max_n_frames_to_sample)
+function [median_frame,median_abs_diff_frame]=seqMedianFrameFromNonRandomSample(input_file_name,max_n_frames_to_sample)
 
 % process args
 if ~exist('max_n_frames_to_sample','var') || isempty(max_n_frames_to_sample)
@@ -30,15 +30,20 @@ end
 n_to_sample=length(i_to_be_sampled);
 
 % collect all the sample frames
-sample_frames=zeros(n_rows,n_cols,n_to_sample,'uint8');
+sample_frames=zeros(n_rows,n_cols,n_to_sample);
 for i=1:n_to_sample
   %sample_frames(:,:,i)=vr.read(i_to_be_sampled(i));
-  sample_frames(:,:,i)=fnReadFrameFromSeq(seqHeader,i);
+  sample_frames(:,:,i)=double(fnReadFrameFromSeq(seqHeader,i));
 end
 
 % calculate the median at each pixel, over the sampled frames
-median_frame=uint8(median(single(sample_frames),3));
-  % have to cast to make work in older versions of Matlab
+median_frame=median(sample_frames,3);  % double
 
+% calculate the median absolute difference image, if called for
+if nargout>=2
+  abs_diff_frames=abs(bsxfun(@minus,sample_frames,median_frame));
+  median_abs_diff_frame=median(abs_diff_frames,3);
+end
+  
 end
 
