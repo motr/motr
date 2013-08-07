@@ -5,10 +5,7 @@ classdef AutoTrackSettingsController < handle
     
     % GUI handles
     fig  % the settings figure
-    mainAxes
-    threshtext
-    upthresh
-    threshdown
+    mainAxes  % the main axes, which shows the current frame ROI and foreground/background segmentation
     lighterthanbgmenu
     donebutton
     debugbutton
@@ -17,11 +14,14 @@ classdef AutoTrackSettingsController < handle
     bgcolorax
     eyedropperRadiobutton
     fillbutton
-    radiustext
-    radiusbuttonplus
-    radiusminusbutton
+    radiusText
+    radiusPlusButton
+    radiusMinusButton
+    thresholdText
+    thresholdPlusButton
+    thresholdMinusButton
     
-    choosepatch
+    choosepatch  % true iff the user is currently in the process of drawing a rectangle in mainAxes
     % buttondownfcn
     im  % the image
     nr  % number of rows
@@ -31,13 +31,14 @@ classdef AutoTrackSettingsController < handle
     c0  % the lowest-index col of the ROI
     c1  % the highest-index col of the ROI
     him
+    perimeterLine
     hchoose
     choosepatchpt1
     choosepatchpt2
   end  % properties
   
   methods
-    % --- Executes just before retrack_settings_export is made visible.
+    % ---------------------------------------------------------------------
     function self=AutoTrackSettingsController(catalyticController)
       self.layout();
       self.catalyticController = catalyticController;
@@ -45,8 +46,8 @@ classdef AutoTrackSettingsController < handle
       % set defaults
       set(self.eyedropperRadiobutton,'value',0);
       axes(self.bgcolorax);
-      self.catalyticController.setCurrentBackgroundImageToPersistent();
-      set(self.threshtext,'string',sprintf('Threshold: %.1f',self.catalyticController.getBackgroundThreshold()));
+      self.catalyticController.initializeBackgroundImageForCurrentAutoTrack();
+      set(self.thresholdText,'string',sprintf('Threshold: %.1f',self.catalyticController.getBackgroundThreshold()));
       lighterthanbg=self.catalyticController.getForegroundSign();
       if lighterthanbg == 1,
         set(self.lighterthanbgmenu,'value',1);
@@ -55,7 +56,7 @@ classdef AutoTrackSettingsController < handle
       else
         set(self.lighterthanbgmenu,'value',3);
       end
-      set(self.radiustext,'string',sprintf('Track Radius: %.1f px',self.catalyticController.getMaximumJump()));
+      set(self.radiusText,'string',sprintf('Track Radius: %.1f px',self.catalyticController.getMaximumJump()));
       
       self.choosepatch = false;
       % self.buttondownfcn = get(self.mainAxes,'buttondownfcn');
@@ -69,29 +70,52 @@ classdef AutoTrackSettingsController < handle
       axes(self.bgcolorax);
       image(repmat(uint8(self.catalyticController.getBackgroundColor()),[1,1,3]));
       axis off;      
+      set(self.fig,'visible','on');
     end
     
     
     % ---------------------------------------------------------------------
     function showCurrentFrame(self)
-      
-      flies = self.catalyticController.getAutoTrackFly();
+      iFlies = self.catalyticController.getAutoTrackFly();
       f = self.catalyticController.getAutoTrackFrame();
       [isfore,dfore,xpred,ypred,thetapred,self.r0,self.r1,self.c0,self.c1,self.im] = ...
-        self.catalyticController.backgroundSubtraction(flies,f);  %#ok
+        self.catalyticController.backgroundSubtraction(iFlies,f);  %#ok
       self.nr = self.r1-self.r0+1;
       self.nc = self.c1-self.c0+1;
-      axes(self.mainAxes);
-      hold off;
-      self.him = imagesc(self.im);
+      %axes(self.mainAxes);
+      %hold off;
+      if ~isempty(self.him) && ishandle(self.him)
+        delete(self.him);
+      end
+      im=self.im;
+      foregroundSign=self.catalyticController.getForegroundSign();
+      if foregroundSign==1 ,
+        backgroundValue=0;
+      elseif foregroundSign==-1 ,
+        backgroundValue=255;
+      else
+        backgroundValue=0;
+      end
+      im(~isfore)=backgroundValue;
+      self.him = image('parent',self.mainAxes, ...
+                       'xdata',[self.c0 self.c1], ...
+                       'ydata',[self.r0 self.r1], ...                       
+                       'cdata',im);
       set(self.him,'buttondownfcn',@(hObject,eventdata)self.mouseButtonDownInMainAxes(hObject,eventdata));
-      
-      axis image;
-      colormap gray;
-      hold on;
-      bw = bwperim(isfore);
-      [r,c] = find(bw);
-      plot(c,r,'r.','hittest','off');
+      set(self.mainAxes,'xlim',[self.c0-0.5 self.c1+0.5], ...
+                        'ylim',[self.r0-0.5 self.r1+0.5]);
+      %axis image;
+      %colormap gray;
+      %hold on;
+%       bw = bwperim(isfore);
+%       [r,c] = find(bw);
+%       self.perimeterLine=line('parent',self.mainAxes, ...
+%                               'xdata',c+self.c0-1, ...
+%                               'ydata',r+self.r0-1, ...
+%                               'color','r', ...
+%                               'marker','.', ...
+%                               'linestyle','none', ...
+%                               'hittest','off');
       
       if ~isempty(self.choosepatchpt1) && ~isempty(self.choosepatchpt2)
         self.hchoose = plot(...
@@ -103,35 +127,35 @@ classdef AutoTrackSettingsController < handle
     end
     
     
-    % --- Executes on button press in upthresh.
-    function upthreshTwiddled(self, hObject, eventdata)  %#ok
-      % hObject    handle to upthresh (see GCBO)
+    % ---------------------------------------------------------------------
+    function thresholdPlusButtonTwiddled(self, hObject, eventdata)  %#ok
+      % hObject    handle to thresholdPlusButton (see GCBO)
       % eventdata  reserved - to be defined in a future version of MATLAB
       % self    structure with self and user data (see GUIDATA)
       
-      self.catalyticController.incrementBackgroundThreshold(0.1);
-      set(self.threshtext,'string',sprintf('Threshold: %.1f',self.catalyticController.getBackgroundThreshold()));
+      self.catalyticController.incrementBackgroundThreshold(1);
+      set(self.thresholdText,'string',sprintf('Threshold: %.1f',self.catalyticController.getBackgroundThreshold()));
       self.showCurrentFrame();
       % guidata(hObject,self);
     end
     
     
-    % --- Executes on button press in threshdown.
-    function threshdownTwiddled(self, hObject, eventdata)  %#ok
-      % hObject    handle to threshdown (see GCBO)
+    % ---------------------------------------------------------------------
+    function thresholdMinusButtonTwiddled(self, hObject, eventdata)  %#ok
+      % hObject    handle to thresholdMinusButton (see GCBO)
       % eventdata  reserved - to be defined in a future version of MATLAB
       % self    structure with self and user data (see GUIDATA)
       
-      self.catalyticController.incrementBackgroundThreshold(-0.1);
+      self.catalyticController.incrementBackgroundThreshold(-1);
       %self.catalyticController.bgthresh = self.catalyticController.bgthresh - .1;
-      set(self.threshtext,'string',sprintf('Threshold: %.1f',self.catalyticController.getBackgroundThreshold()));
+      set(self.thresholdText,'string',sprintf('Threshold: %.1f',self.catalyticController.getBackgroundThreshold()));
       self.showCurrentFrame();
       % guidata(hObject,self);
     end
     
     
     
-    % --- Executes on selection change in lighterthanbgmenu.
+    % ---------------------------------------------------------------------
     function lighterthanbgmenuTwiddled(self, hObject, eventdata)  %#ok
       % hObject    handle to lighterthanbgmenu (see GCBO)
       % eventdata  reserved - to be defined in a future version of MATLAB
@@ -172,33 +196,22 @@ classdef AutoTrackSettingsController < handle
     
     
     
-    % --- Executes on button press in donebutton.
+    % ---------------------------------------------------------------------
     function donebuttonTwiddled(self, hObject, eventdata)  %#ok
-      % hObject    handle to donebutton (see GCBO)
-      % eventdata  reserved - to be defined in a future version of MATLAB
-      % self    structure with self and user data (see GUIDATA)
       self.closeRequested();
     end
     
     
     
-    % --- Executes on button press in eyedropperRadiobutton.
+    % ---------------------------------------------------------------------
     function eyedropperRadiobuttonTwiddled(self, hObject, eventdata)  %#ok
-      % hObject    handle to eyedropperRadiobutton (see GCBO)
-      % eventdata  reserved - to be defined in a future version of MATLAB
-      % self    structure with self and user data (see GUIDATA)
-      
       % Hint: get(hObject,'Value') returns toggle state of eyedropperRadiobutton
     end
     
     
     
-    % --- Executes on mouse press over axes background.
+    % ---------------------------------------------------------------------
     function mouseButtonDownInMainAxes(self, hObject, eventdata)  %#ok
-      % hObject    handle to mainAxes (see GCBO)
-      % eventdata  reserved - to be defined in a future version of MATLAB
-      % self    structure with self and user data (see GUIDATA)
-      
       %fprintf('Entered mouseButtonDownInMainAxes()\n');
       pt = get(self.mainAxes,'currentpoint');
       x = min(max(1,round(pt(1,1))),self.nc);
@@ -226,22 +239,14 @@ classdef AutoTrackSettingsController < handle
     end
     
     
-    % --- Executes on button press in debugbutton.
+    % ---------------------------------------------------------------------
     function debugbuttonTwiddled(self, hObject, eventdata)  %#ok
-      % hObject    handle to debugbutton (see GCBO)
-      % eventdata  reserved - to be defined in a future version of MATLAB
-      % self    structure with self and user data (see GUIDATA)
-      
       keyboard;
     end
     
     
-    % --- Executes on button press in fillbutton.
+    % ---------------------------------------------------------------------
     function fillbuttonTwiddled(self, hObject, eventdata)  %#ok
-      % hObject    handle to fillbutton (see GCBO)
-      % eventdata  reserved - to be defined in a future version of MATLAB
-      % self    structure with self and user data (see GUIDATA)
-      
       if isempty(self.choosepatchpt1) || isempty(self.choosepatchpt2)
         msgbox('Drag a rectangle to select a patch to fill');
         return;
@@ -255,9 +260,9 @@ classdef AutoTrackSettingsController < handle
       r1 = min(round(r1+self.r0-1),self.catalyticController.getNRows());
       c0 = max(round(c0+self.c0-1),1);
       c1 = min(round(c1+self.c0-1),self.catalyticController.getNCols());
-      bgcurr=self.catalyticController.getPersistentBackgroundImage();
+      bgcurr=self.catalyticController.getBackgroundImage();
       bgcurr(r0:r1,c0:c1) = self.catalyticController.getBackgroundColor();
-      self.catalyticController.setCurrentBackgroundImage(bgcurr);
+      self.catalyticController.setBackgroundImageForCurrentAutoTrack(bgcurr);
       
       self.showCurrentFrame();
       % guidata(hObject,self);
@@ -265,12 +270,8 @@ classdef AutoTrackSettingsController < handle
     
     
     
-    % --- Executes on mouse motion over figure - except title and menu.
+    % ---------------------------------------------------------------------
     function mouseMoved(self,hObject,eventdata)  %#ok
-      % hObject    handle to fig (see GCBO)
-      % eventdata  reserved - to be defined in a future version of MATLAB
-      % self    structure with self and user data (see GUIDATA)
-      
       %if isfield(self,'choosepatch') || ~self.choosepatch
       %fprintf('Entered mouseMoved()\n');
       if isempty(self.choosepatch) || ~self.choosepatch
@@ -296,61 +297,45 @@ classdef AutoTrackSettingsController < handle
     end
     
     
-    % --- Executes on mouse press over figure background, over a disabled or
-    % --- inactive control, or over an axes background.
+    % ---------------------------------------------------------------------
     function mouseButtonReleased(self,hObject,eventdata)  %#ok
-      % hObject    handle to fig (see GCBO)
-      % eventdata  reserved - to be defined in a future version of MATLAB
-      % self    structure with self and user data (see GUIDATA)
-      
       self.choosepatch = false;
-      % guidata(hObject,self);
     end
     
     
     
-    % --- Executes on button press in radiusplusbutton.
-    function radiusplusbuttonTwiddled(self, hObject, eventdata)  %#ok
-      % hObject    handle to radiusplusbutton (see GCBO)
-      % eventdata  reserved - to be defined in a future version of MATLAB
-      % self    structure with self and user data (see GUIDATA)
-      
+    % ---------------------------------------------------------------------
+    function radiusPlusButtonTwiddled(self, hObject, eventdata)  %#ok
       self.catalyticController.incrementMaximumJump(+1);
-      set(self.radiustext,'string',sprintf('Track Radius: %.1f px',self.catalyticController.getMaximumJump()));
+      set(self.radiusText,'string',sprintf('Track Radius: %.1f px',self.catalyticController.getMaximumJump()));
       self.showCurrentFrame();
-      % guidata(hObject,self);
     end
     
     
     
-    % --- Executes on button press in radiusminusbutton.
-    function radiusminusbuttonTwiddled(self, hObject, eventdata)  %#ok
-      % hObject    handle to radiusminusbutton (see GCBO)
-      % eventdata  reserved - to be defined in a future version of MATLAB
-      % self    structure with self and user data (see GUIDATA)
-      
+    % ---------------------------------------------------------------------
+    function radiusMinusButtonTwiddled(self, hObject, eventdata)  %#ok
       self.catalyticController.incrementMaximumJump(-1);
-      set(self.radiustext,'string',sprintf('Track Radius: %.1f px',self.catalyticController.getMaximumJump()));
+      set(self.radiusText,'string',sprintf('Track Radius: %.1f px',self.catalyticController.getMaximumJump()));
       self.showCurrentFrame();
-      % guidata(hObject,self);
     end
     
     
     
-    % --- Executes when user attempts to close fig.
+    % ---------------------------------------------------------------------
     function closeRequested(self)
       delete(self.fig);
     end
     
     
     
-    % --- Creates and returns a handle to the GUI figure.
+    % ---------------------------------------------------------------------
     function layout(self)      
       self.fig = figure(...
         'Units','characters',...
         'CloseRequestFcn',@(hObject,eventdata)self.closeRequested(),...
         'Color',[0.929411764705882 0.929411764705882 0.929411764705882],...
-        'Colormap',[0 0 0.5625;0 0 0.625;0 0 0.6875;0 0 0.75;0 0 0.8125;0 0 0.875;0 0 0.9375;0 0 1;0 0.0625 1;0 0.125 1;0 0.1875 1;0 0.25 1;0 0.3125 1;0 0.375 1;0 0.4375 1;0 0.5 1;0 0.5625 1;0 0.625 1;0 0.6875 1;0 0.75 1;0 0.8125 1;0 0.875 1;0 0.9375 1;0 1 1;0.0625 1 1;0.125 1 0.9375;0.1875 1 0.875;0.25 1 0.8125;0.3125 1 0.75;0.375 1 0.6875;0.4375 1 0.625;0.5 1 0.5625;0.5625 1 0.5;0.625 1 0.4375;0.6875 1 0.375;0.75 1 0.3125;0.8125 1 0.25;0.875 1 0.1875;0.9375 1 0.125;1 1 0.0625;1 1 0;1 0.9375 0;1 0.875 0;1 0.8125 0;1 0.75 0;1 0.6875 0;1 0.625 0;1 0.5625 0;1 0.5 0;1 0.4375 0;1 0.375 0;1 0.3125 0;1 0.25 0;1 0.1875 0;1 0.125 0;1 0.0625 0;1 0 0;0.9375 0 0;0.875 0 0;0.8125 0 0;0.75 0 0;0.6875 0 0;0.625 0 0;0.5625 0 0],...
+        'Colormap',gray(256),...
         'IntegerHandle','off',...
         'InvertHardcopy',get(0,'defaultfigureInvertHardcopy'),...
         'MenuBar','none',...
@@ -363,7 +348,7 @@ classdef AutoTrackSettingsController < handle
         'WindowButtonMotionFcn',@(hObject,eventdata)self.mouseMoved(hObject,eventdata),...
         'WindowButtonUpFcn',@(hObject,eventdata)self.mouseButtonReleased(hObject,eventdata),...
         'HandleVisibility','callback',...
-        'WindowStyle','modal', ...
+        'WindowStyle','normal', ...
         'UserData',[],...
         'Tag','fig',...
         'Visible','on');
@@ -373,48 +358,20 @@ classdef AutoTrackSettingsController < handle
         'Units','characters',...
         'FontUnits','pixels',...
         'Position',[2.5 1.58333333333333 64.5 28.25],...
-        'CameraPosition',[0.5 0.5 9.16025403784439],...
-        'CameraPositionMode',get(0,'defaultaxesCameraPositionMode'),...
-        'Color',get(0,'defaultaxesColor'),...
-        'ColorOrder',get(0,'defaultaxesColorOrder'),...
         'FontSize',12.5,...
         'LooseInset',[14.56 3.55666666666667 10.64 2.425],...
-        'XColor',get(0,'defaultaxesXColor'),...
-        'YColor',get(0,'defaultaxesYColor'),...
-        'ZColor',get(0,'defaultaxesZColor'),...
         'ButtonDownFcn',@(hObject,eventdata)@(hObject,eventdata)self.mouseButtonDownInMainAxes(hObject,eventdata),...
+        'clim',[0 255], ...
+        'ydir','reverse', ...
+        'dataaspectratio',[1 1 1], ...
         'Tag','mainAxes');
-      
-      self.threshtext = uicontrol(...
-        'Parent',self.fig,...
-        'Units','characters',...
-        'FontUnits','pixels',...
-        'FontSize',12.5,...
-        'HorizontalAlignment','left',...
-        'Position',[71.5 11.3076923076923 16 1.30769230769231],...
-        'String','Threshold: 0',...
-        'Style','text',...
-        'Tag','threshtext');
-      
-      self.upthresh = uicontrol(...
-        'Parent',self.fig,...
-        'Units','characters',...
-        'FontUnits','pixels',...
-        'Callback',@(hObject,eventdata)self.upthreshTwiddled(hObject,eventdata),...
-        'FontSize',12.5,...
-        'Position',[89.3333333333333 11.3076923076923 3.5 1.92307692307692],...
-        'String','+',...
-        'Tag','upthresh');
-      
-      self.threshdown = uicontrol(...
-        'Parent',self.fig,...
-        'Units','characters',...
-        'FontUnits','pixels',...
-        'Callback',@(hObject,eventdata)self.threshdownTwiddled(hObject,eventdata),...
-        'FontSize',12.5,...
-        'Position',[93.6666666666667 11.3076923076923 3.5 1.92307692307692],...
-        'String','-',...
-        'Tag','threshdown');
+%         'CameraPosition',[0.5 0.5 9.16025403784439],...
+%         'CameraPositionMode',get(0,'defaultaxesCameraPositionMode'),...
+%         'XColor',get(0,'defaultaxesXColor'),...
+%         'YColor',get(0,'defaultaxesYColor'),...
+%         'ZColor',get(0,'defaultaxesZColor'),...
+%         'Color',get(0,'defaultaxesColor'),...
+%         'ColorOrder',get(0,'defaultaxesColorOrder'),...
       
       self.lighterthanbgmenu = uicontrol(...
         'Parent',self.fig,...
@@ -494,7 +451,7 @@ classdef AutoTrackSettingsController < handle
         'FontUnits','pixels',...
         'Callback',@(hObject,eventdata)self.eyedropperRadiobuttonTwiddled(hObject,eventdata),...
         'FontSize',12.5,...
-        'Position',[21.3333333333333 1.30769230769231 19 1],...
+        'Position',[21.3333333333333 1.30769230769231 19 1.2],...
         'String','Eyedropper',...
         'Style','radiobutton',...
         'Tag','eyedropperRadiobutton');
@@ -509,36 +466,67 @@ classdef AutoTrackSettingsController < handle
         'String','Fill',...
         'Tag','fillbutton');
       
-      self.radiustext = uicontrol(...
+      self.radiusText = uicontrol(...
         'Parent',self.fig,...
         'Units','characters',...
         'FontUnits','pixels',...
         'FontSize',12.5,...
         'HorizontalAlignment','left',...
-        'Position',[71.5 13.8461538461539 16.5 1],...
-        'String','Track Radius: 50 px',...
+        'Position',[71.5 14.45 25 1.1],...
+        'String','Track Radius: ',...
         'Style','text',...
-        'Tag','radiustext');
+        'Tag','radiusText');
       
-      self.radiusbuttonplus = uicontrol(...
+      self.radiusPlusButton = uicontrol(...
         'Parent',self.fig,...
         'Units','characters',...
         'FontUnits','pixels',...
-        'Callback',@(hObject,eventdata)self.radiusplusbuttonTwiddled(hObject,eventdata),...
+        'Callback',@(hObject,eventdata)self.radiusPlusButtonTwiddled(hObject,eventdata),...
         'FontSize',12.5,...
-        'Position',[89.1666666666667 13.4615384615385 3.5 1.92307692307692],...
+        'Position',[89.2+9 13.9 3.5 1.9],...
         'String','+',...
-        'Tag','radiusplusbutton');
+        'Tag','radiusPlusButton');
       
-      self.radiusminusbutton = uicontrol(...
+      self.radiusMinusButton = uicontrol(...
         'Parent',self.fig,...
         'Units','characters',...
         'FontUnits','pixels',...
-        'Callback',@(hObject,eventdata)self.radiusminusbuttonTwiddled(hObject,eventdata),...
+        'Callback',@(hObject,eventdata)self.radiusMinusButtonTwiddled(hObject,eventdata),...
         'FontSize',12.5,...
-        'Position',[93.5 13.4615384615385 3.5 1.92307692307692],...
+        'Position',[93.5+9 13.9 3.5 1.9],...
         'String','-',...
-        'Tag','radiusminusbutton');
+        'Tag','radiusMinusButton');
+      
+      self.thresholdText = uicontrol(...
+        'Parent',self.fig,...
+        'Units','characters',...
+        'FontUnits','pixels',...
+        'FontSize',12.5,...
+        'HorizontalAlignment','left',...
+        'Position',[71.5 11.85 25 1.1],...
+        'String','Threshold: ',...
+        'Style','text',...
+        'Tag','thresholdText');
+      
+      self.thresholdPlusButton = uicontrol(...
+        'Parent',self.fig,...
+        'Units','characters',...
+        'FontUnits','pixels',...
+        'Callback',@(hObject,eventdata)self.thresholdPlusButtonTwiddled(hObject,eventdata),...
+        'FontSize',12.5,...
+        'Position',[89.2+9 11.3 3.5 1.9],...
+        'String','+',...
+        'Tag','thresholdPlusButton');
+      
+      self.thresholdMinusButton = uicontrol(...
+        'Parent',self.fig,...
+        'Units','characters',...
+        'FontUnits','pixels',...
+        'Callback',@(hObject,eventdata)self.thresholdMinusButtonTwiddled(hObject,eventdata),...
+        'FontSize',12.5,...
+        'Position',[93.5+9 11.3 3.5 1.9],...
+        'String','-',...
+        'Tag','thresholdMinusButton');      
     end  % method
     
   end  % methods

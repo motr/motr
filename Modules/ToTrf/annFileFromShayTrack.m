@@ -44,7 +44,7 @@ fprintf(fid,'ang_dist_wt:%f\n',ang_dist_wt);
 fprintf(fid,'bg_algorithm:%s\n','median');
 backgroundFrame=double(backgroundFrame);
 fprintf(fid,'background median:%d\n',8*numel(backgroundFrame));
-fwrite(fid,backgroundFrame,'double');
+fwrite(fid,backgroundFrame','double');  % want in row-major order, apparently
 fprintf(fid,'end header\n');
 
 if nMice>0

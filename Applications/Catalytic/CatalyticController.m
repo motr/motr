@@ -10,11 +10,11 @@ properties
   params = [];
   matname = [];
   savename = [];
-  readframe = [];
+  readframe = [];  % a function handle, used to read a frame of the video
   nframes = [];
   fid = [];
   timestamps=[];
-  doFlipUpDown=false;
+  %doFlipUpDown=false;
   nflies=[];
   colors0
   colororder
@@ -33,7 +33,7 @@ properties
   bgthresh
   bgcolor
   doneseqs
-  bgmed
+  backgroundImage
   hswap
   editMode
   mainaxesaspectratio
@@ -160,12 +160,14 @@ properties
   autotrackfly
   manytrackflies
   hmanytrack
-  bgcurr
+  backgroundImageForCurrentAutoTrack
   stoptracking
   
   ang_dist_wt
   maxjump
-  lighterthanbg
+  foregroundSign  % +1 if animals are white-on-black, 
+                  % -1 if black-on-white, 
+                  % 0 if they're just different than background
   isplaying=false
   
   zoomingIn=false
@@ -193,10 +195,13 @@ methods
     self.timestamps=[];
     
     % initialize parameters
-    self = initializeMainAxes(self);
+    %self = initializeMainAxes(self);
+    self.mainaxesaspectratio = 1;
+    %c=get(self.mainaxes,'children');
+    %delete(c);
     
     % initialize state
-    self.doFlipUpDown = 0;
+    %self.doFlipUpDown = 0;
     self.nflies = length(self.trx);
     [self.colors0,self.colororder,self.colors] = ...
       colorOrderFromNumberOfAnimals(self.nflies);
@@ -232,8 +237,8 @@ methods
     %self = plotFirstFrame(self);
     initializeDisplayPanel(self);
     setErrorTypes(self);
-    %self.bgmed = reshape(self.bgmed,[self.nc,self.nr])';
-    self.bgmed=[];
+    %self.backgroundImage = reshape(self.backgroundImage,[self.nc,self.nr])';
+    self.backgroundImage=[];
     initializeKeyPressFcns(self);
     
     storePanelPositions(self);
@@ -274,18 +279,18 @@ methods
   
   
   
-  %--------------------------------------------------------------------------
-  function self = initializeMainAxes(self)
-    self.mainaxesaspectratio = 1;
-    c=get(self.mainaxes,'children');
-    delete(c);
-    %set(self.mainaxes,'xlim',[0.5 1024.5]);
-    %set(self.mainaxes,'ylim',[0.5 1024.5]);
-    set(self.mainaxes,'xtick',[]);
-    set(self.mainaxes,'ytick',[]);
-    set(self.mainaxes,'box','on');
-    set(self.mainaxes,'layer','top');
-  end  % method
+%   %--------------------------------------------------------------------------
+%   function self = initializeMainAxes(self)
+%     self.mainaxesaspectratio = 1;
+%     c=get(self.mainaxes,'children');
+%     delete(c);
+%     %set(self.mainaxes,'xlim',[0.5 1024.5]);
+%     %set(self.mainaxes,'ylim',[0.5 1024.5]);
+% %     set(self.mainaxes,'xtick',[]);
+% %     set(self.mainaxes,'ytick',[]);
+% %     set(self.mainaxes,'box','on');
+% %     set(self.mainaxes,'layer','top');
+%   end  % method
   
   
   
@@ -317,16 +322,17 @@ methods
   
   %--------------------------------------------------------------------------
   function self = plotFirstFrame(self)
-    mainaxes=self.mainaxes;
-    axes(mainaxes);
+    %axes(self.mainaxes);
     im = self.readframe(self.f);
     [self.nr,self.nc,self.ncolors] = size(im);
-    self.him = image('parent',mainaxes,'cdata',im);
-    set(self.fig,'colormap',gray(256));
-    set(mainaxes,'clim',[min(im(:)) max(im(:))]);
-    axis(mainaxes,'image');
-    hold(mainaxes,'on');
-    zoom(self.fig,'reset');
+    self.him = image('parent',self.mainaxes,'cdata',im);
+    %set(self.fig,'colormap',gray(256));
+    set(self.mainaxes,'clim',[min(im(:)) max(im(:))], ...
+        'xtickmode','auto',...
+        'ytickmode','auto');
+    %axis(self.mainaxes,'image');
+    %hold(self.mainaxes,'on');
+    %zoom(self.fig,'reset');
     
     self.hellipse = zeros(1,self.nflies);
     self.hcenter = self.hellipse;
@@ -344,7 +350,7 @@ methods
       updateFlyPathVisible(self);
       fixUpdateFly(self,fly);
     end
-    zoomInOnSeq(self);
+    self.zoomInOnSeq();
   end  % method
   
   
@@ -2305,7 +2311,7 @@ methods
     color = self.colors(fly,:);
     set(self.hautotrack,'color',color*.75,'linewidth',3,'linestyle','--',...
       'hittest','off');
-    self.bgcurr = self.bgmed;
+    self.backgroundImageForCurrentAutoTrack = self.backgroundImage;
     
     % guidata(hObject,self);
   end  % method
@@ -2503,12 +2509,12 @@ methods
     seq.flies = flies;
     seq.frames = f0:min(f1,[self.trx(flies).endframe]);
     if get(self.manytrackshowtrackingbutton,'value')
-      zoomInOnSeq(self,seq);
+      self.zoomInOnSeq(seq);
     end
     self.stoptracking = false;
     self.trackFlies(flies,f0,f1);
     for fly = flies(:)',
-      fixDeathEvent(self,fly);
+      self.fixDeathEvent(fly);
     end
     delete(self.hmanytrack);
     set(self.manytrackcancelbutton,'string','Cancel');
@@ -2551,9 +2557,9 @@ methods
           setFlySelectedInView(self,fly,false);
         end
       end
-      set(self.manytrackfirstframebutton,'Enable','on');
-      set(self.manytrackdoitbutton,'enable','off');
-      currentEditModeCancelled(self);
+      %set(self.manytrackfirstframebutton,'Enable','on');
+      %set(self.manytrackdoitbutton,'enable','off');
+      self.currentEditModeCancelled();
     end
     % guidata(hObject,self);
   end  % method
@@ -2586,9 +2592,9 @@ methods
     
     self.nselect = 0;
     self.selected = [];
-    set(self.manytrackdoitbutton,'enable','on');
-    set(self.manytrackfirstframebutton,'enable','off');
-    set(self.manytracksettingsbutton,'enable','on');
+    %set(self.manytrackdoitbutton,'enable','on');
+    %set(self.manytrackfirstframebutton,'enable','off');
+    %set(self.manytracksettingsbutton,'enable','on');
     % draw the fly
     self.hmanytrack = [];
     for fly = self.manytrackflies(:)',
@@ -2603,7 +2609,8 @@ methods
       set(self.hmanytrack(end),'color',color*.75,'linewidth',3,'linestyle','--',...
         'hittest','off');
     end
-    self.bgcurr = self.bgmed;
+    self.backgroundImageForCurrentAutoTrack = self.backgroundImage;
+    self.updateControlVisibilityAndEnablement();
     
     % guidata(hObject,self);
   end  % method
@@ -2856,8 +2863,8 @@ methods
     % hObject    handle to flipimage_checkbox (see GCBO)
     % eventdata  reserved - to be defined in a future version of MATLAB
     % self    structure with self and user data (see GUIDATA)
-    self.doFlipUpDown = get( hObject, 'value' );
-    plotFrame( self )
+    %self.doFlipUpDown = get( hObject, 'value' );
+    %plotFrame( self )
     % guidata( hObject, self )
   end  % method
   
@@ -3059,7 +3066,6 @@ methods
       self.params = trf.params;
       self.matname = trf.matname;
       self.savename = fileNameAbs;
-      didload = false;
       [self.readframe,self.nframes,self.fid] = get_readframe_fcn(self.moviename);
       
       % get timestamps
@@ -3068,7 +3074,10 @@ methods
       end
       
       % initialize parameters
-      initializeMainAxes(self);
+      self.mainaxesaspectratio = 1;
+      c=get(self.mainaxes,'children');
+      delete(c);
+      % initializeMainAxes(self);
       
       % initialize state
       isseqleft = false;
@@ -3079,15 +3088,13 @@ methods
         end
       end
       if ~isseqleft,
-        if ~didload,
-          self.doneseqs = [];
-        end
+        self.doneseqs = [];
         %guidata(fig,self);
         %msgbox('No suspicious sequences to be corrected. Exiting. ','All Done');
         %uiresume(self.fig);
         return
       end
-      self.doFlipUpDown = 0;
+      %self.doFlipUpDown = 0;
       self.nflies = length(self.trx);
       % self = setFlyColors(self);
       [self.colors0,self.colororder,self.colors] = ...
@@ -3102,7 +3109,7 @@ methods
       self.undolist = {};
       self.needssaving = 0;  % don't need to save b/c just opened
       
-      %self.lighterthanbg = 1;
+      %self.foregroundSign = 1;
       self.bgcolor = nan;
       [ang_dist_wt, ...
        max_jump, ...
@@ -3123,33 +3130,33 @@ methods
       self.maxjump=max_jump;
       self.bgthresh=fif(isempty(n_bg_std_thresh_low),10,n_bg_std_thresh_low);
       if bg_type == 0,
-        self.lighterthanbg = 1;
+        self.foregroundSign = 1;
       elseif bg_type == 1,
-        self.lighterthanbg = -1;
+        self.foregroundSign = -1;
       else
-        self.lighterthanbg = 0;
+        self.foregroundSign = 0;
       end
       if strcmpi(bg_algorithm,'median'),
-        self.bgmed = background_median;
+        backgroundImageAsVector = background_median;
       else
-        self.bgmed = background_mean;
+        backgroundImageAsVector = background_mean;
       end
       
       % initialize data structures
       
       % initialize structure to hold seqs that are done
-      if ~didload,
-        self.doneseqs = [];
-      end
+      self.doneseqs = [];
       
       % initialize gui
       
-      initializeFrameSlider(self);
-      setFrameNumber(self);
-      plotFirstFrame(self);
-      initializeDisplayPanel(self);
-      setErrorTypes(self);
-      self.bgmed = reshape(self.bgmed,[self.nc,self.nr])';
+      self.initializeFrameSlider();
+      self.setFrameNumber();
+      self.plotFirstFrame();
+      self.initializeDisplayPanel();
+      self.setErrorTypes();
+      self.backgroundImage = reshape(backgroundImageAsVector,[self.nc,self.nr])';
+        % backgroundImageAsVector contains pels in row-major order, so
+        % have to deal with this
       initializeKeyPressFcns(self);
       
       storePanelPositions(self);
@@ -3202,7 +3209,10 @@ methods
     self.timestamps=[];
     
     % initialize parameters
-    initializeMainAxes(self);
+    %initializeMainAxes(self);
+    self.mainaxesaspectratio = 1;
+    c=get(self.mainaxes,'children');
+    delete(c);
     
     % initialize state
     % isseqleft = false;
@@ -3221,7 +3231,7 @@ methods
     %   uiresume(self.fig);
     %   return
     % end
-    self.doFlipUpDown = 0;
+    %self.doFlipUpDown = 0;
     self.nflies = length(self.trx);
     % setFlyColors(self);
     [self.colors0,self.colororder,self.colors] = ...
@@ -3242,25 +3252,7 @@ methods
     self.needssaving = 0;
     
     self.bgthresh = 10;
-    %self.lighterthanbg = 1;
     self.bgcolor = nan;
-    % [self.ang_dist_wt,self.maxjump,bgtype,bgmed,bgmean,...
-    %   tmp,self.bgthresh] = ...
-    %   read_ann(self.annname,'ang_dist_wt','max_jump',...
-    %   'bg_algorithm','background_median','background_mean','bg_type',...
-    %   'n_bg_std_thresh_low');
-    % if tmp == 0,
-    %   self.lighterthanbg = 1;
-    % elseif tmp == 1,
-    %   self.lighterthanbg = -1;
-    % else
-    %   self.lighterthanbg = 0;
-    % end
-    % if strcmpi(bgtype,'median'),
-    %   self.bgmed = bgmed;
-    % else
-    %   self.bgmed = bgmean;
-    % end
     
     % initialize data structures
     
@@ -3276,9 +3268,10 @@ methods
     %plotFirstFrame(self);
     initializeDisplayPanel(self);
     setErrorTypes(self);
-    %self.bgmed = reshape(self.bgmed,[self.nc,self.nr])';
-    self.bgmed=[];
+    %self.backgroundImage = reshape(self.backgroundImage,[self.nc,self.nr])';
+    self.backgroundImage=[];
     initializeKeyPressFcns(self);
+    set(self.mainaxes,'xtick',[],'ytick',[]);
     
     storePanelPositions(self);
     
@@ -3288,7 +3281,6 @@ methods
     
     % Update the enablement and visibility of the UI
     self.updateControlVisibilityAndEnablement();
-    
   end  % method
   
   
@@ -3451,9 +3443,8 @@ methods
       'Units','characters',...
       'CloseRequestFcn',@(hObject,eventdata)self.quit(),...
       'Color', get(0,'DefaultUicontrolBackgroundColor'), ...
-      'Colormap',[0 0 0.5625;0 0 0.625;0 0 0.6875;0 0 0.75;0 0 0.8125;0 0 0.875;0 0 0.9375;0 0 1;0 0.0625 1;0 0.125 1;0 0.1875 1;0 0.25 1;0 0.3125 1;0 0.375 1;0 0.4375 1;0 0.5 1;0 0.5625 1;0 0.625 1;0 0.6875 1;0 0.75 1;0 0.8125 1;0 0.875 1;0 0.9375 1;0 1 1;0.0625 1 1;0.125 1 0.9375;0.1875 1 0.875;0.25 1 0.8125;0.3125 1 0.75;0.375 1 0.6875;0.4375 1 0.625;0.5 1 0.5625;0.5625 1 0.5;0.625 1 0.4375;0.6875 1 0.375;0.75 1 0.3125;0.8125 1 0.25;0.875 1 0.1875;0.9375 1 0.125;1 1 0.0625;1 1 0;1 0.9375 0;1 0.875 0;1 0.8125 0;1 0.75 0;1 0.6875 0;1 0.625 0;1 0.5625 0;1 0.5 0;1 0.4375 0;1 0.375 0;1 0.3125 0;1 0.25 0;1 0.1875 0;1 0.125 0;1 0.0625 0;1 0 0;0.9375 0 0;0.875 0 0;0.8125 0 0;0.75 0 0;0.6875 0 0;0.625 0 0;0.5625 0 0],...
+      'Colormap',gray(256),...
       'IntegerHandle','off',...
-      'InvertHardcopy',get(0,'defaultfigureInvertHardcopy'),...
       'KeyPressFcn',@(hObject,eventdata)self.keyPressed(hObject,eventdata),...
       'MenuBar','none',...
       'Name','Catalytic',...
@@ -3465,13 +3456,41 @@ methods
       'WindowButtonMotionFcn',@(hObject,eventdata)self.mouseMoved(hObject,eventdata),...
       'WindowButtonUpFcn',@(hObject,eventdata)self.mouseButtonReleased(hObject,eventdata),...
       'HandleVisibility','callback',...
-      'UserData',[],...
       'Tag','fig',...
       'Visible','off');
     %'Color',[0.701960784313725 0.701960784313725 0.701960784313725],...
+%      'InvertHardcopy',get(0,'defaultfigureInvertHardcopy'),...
     
     centerOnRoot(self.fig);    
     
+    self.mainaxes=axes(...
+      'Parent',self.fig,...
+      'Units','characters',...
+      'FontUnits','pixels',...
+      'Position',[1.6 16.5 98.4 40.5],...
+      'Box','on',...
+      'FontName','helvetica',...
+      'FontSize',12.5,...
+      'Layer','top',...
+      'ydir','reverse', ...
+      'xtick',[],...
+      'ytick',[],...      
+      'dataaspectratio',[1 1 1], ...
+      'ButtonDownFcn',@(hObject,eventdata)self.mainaxes_ButtonDownFcn(hObject,eventdata),...
+      'Tag','mainaxes');
+%       'LooseInset',[19.8466666666667 5.72 14.5033333333333 3.9],...
+%       'CameraPosition',[0.5 0.5 9.16025403784439],...
+%       'CameraPositionMode',get(0,'defaultaxesCameraPositionMode'),...
+%       'ZColor',get(0,'defaultaxesZColor'),...
+%      'XColor',get(0,'defaultaxesXColor'),...
+%      'YColor',get(0,'defaultaxesYColor'),...
+%      'XTick',[],...
+%      'YTick',[],...
+%       'XTickMode','manual',...
+%       'YTickMode','manual',...
+%       'Color',get(0,'defaultaxesColor'),...
+%       'ColorOrder',get(0,'defaultaxesColorOrder'),...
+        
     self.connectpanel = uipanel(...
       'Parent',self.fig,...
       'Units','characters',...
@@ -4259,31 +4278,6 @@ methods
       'UserData',[],...
       'Tag','swapfirstframebutton');
     
-    mainaxes=axes(...
-      'Parent',self.fig,...
-      'Units','characters',...
-      'FontUnits','pixels',...
-      'Position',[1.6 15.5384615384615 98.4 41.6923076923077],...
-      'Box','on',...
-      'CameraPosition',[0.5 0.5 9.16025403784439],...
-      'CameraPositionMode',get(0,'defaultaxesCameraPositionMode'),...
-      'Color',get(0,'defaultaxesColor'),...
-      'ColorOrder',get(0,'defaultaxesColorOrder'),...
-      'FontName','helvetica',...
-      'FontSize',12.5,...
-      'Layer','top',...
-      'LooseInset',[19.8466666666667 5.72 14.5033333333333 3.9],...
-      'XColor',get(0,'defaultaxesXColor'),...
-      'XTick',[],...
-      'XTickMode','manual',...
-      'YColor',get(0,'defaultaxesYColor'),...
-      'YTick',[],...
-      'YTickMode','manual',...
-      'ZColor',get(0,'defaultaxesZColor'),...
-      'ButtonDownFcn',@(hObject,eventdata)self.mainaxes_ButtonDownFcn(hObject,eventdata),...
-      'Tag','mainaxes');
-    self.mainaxes=mainaxes;
-        
     self.playstopbutton=uicontrol(...
       'Parent',self.fig,...
       'Units','characters',...
@@ -4980,35 +4974,42 @@ methods
 
     % swap ID panel
     set(self.swapfirstframebutton, ...
-      'enable', ...
-      onIff(strcmpi(editMode,'swap identities...')&& ...
-      (self.nselect==2)&& ...
-      (length(self.selected)==2)));
+        'enable', ...
+          onIff(strcmpi(editMode,'swap identities...')&& ...
+                (self.nselect==2)&& ...
+                (length(self.selected)==2)));
     set(self.swapdoitbutton, ...
-      'enable', ...
-      onIff(strcmpi(editMode,'swap identities...')&&(self.nselect==0)));
+        'enable', ...
+          onIff(strcmpi(editMode,'swap identities...')&&(self.nselect==0)));
     
     % connect panel
     set(self.connectdoitbutton,'enable',onIff(strcmpi(editMode,'connect tracks...')&&(self.connectfirstframe>0)));
     
     % interpolate panel
     set(self.interpolatefirstframebutton, ...
-      'enable', ...
-      onIff(strcmpi(editMode,'interpolate...')&& ...
-      (self.nselect==1)&& ...
-      (length(self.selected)==1)));
+        'enable', ...
+          onIff(strcmpi(editMode,'interpolate...')&& ...
+                (self.nselect==1)&& ...
+                (length(self.selected)==1)));
     set(self.interpolatedoitbutton, ...
-      'enable', ...
-      onIff(strcmpi(editMode,'interpolate...')&& ...
-      (self.nselect==0)));
+        'enable', ...
+          onIff(strcmpi(editMode,'interpolate...')&& ...
+                (self.nselect==0)));
+
+    % auto-track many panel
+    set(self.manytrackfirstframebutton, ...
+        'enable', ...
+        onIff(strcmpi(editMode,'auto-track multiple...') && ...
+              (self.nselect>0) && ...
+              (~isempty(self.selected))));
+    set(self.manytrackdoitbutton,'enable',onIff(strcmpi(editMode,'auto-track multiple...')&&(self.manytrackframe>0)));
+    set(self.manytracksettingsbutton,'enable',onIff(strcmpi(editMode,'auto-track multiple...')&&(self.manytrackframe>0)));
     
     % other panels
     set(self.extenddoitbutton,'enable',onIff(strcmpi(editMode,'extend track...')&&(self.extendFlySelected)));
     set(self.autotrackdoitbutton,'enable',onIff(strcmpi(editMode,'auto-track...')&&(self.autotrackframe>0)));
     set(self.autotracksettingsbutton,'enable',onIff(strcmpi(editMode,'auto-track...')&&(self.autotrackframe>0)));
     set(self.flipdoitbutton,'enable',onIff(strcmpi(editMode,'flip orientation...')&&(self.flipframe>0)));
-    set(self.manytrackdoitbutton,'enable',onIff(strcmpi(editMode,'auto-track multiple...')&&(self.manytrackframe>0)));
-    set(self.manytracksettingsbutton,'enable',onIff(strcmpi(editMode,'auto-track multiple...')&&(self.manytrackframe>0)));
     set(self.addnewtrackdoitbutton, 'enable',onIff(strcmpi(editMode,'add new track...')));
     
   end  % method
@@ -5213,7 +5214,10 @@ methods
     % splintered from fixerrorsgui 6/23/12 JAB
     
     self.isplaying = true;
-    set(self.playstopbutton,'string','Stop','backgroundcolor',[.5,0,0]);
+    set(self.playstopbutton,'string','Stop');
+    if ~ismac() ,
+      set(self.playstopbutton,'backgroundcolor',[.5,0,0]);
+    end
     %guidata(hObject,self);
     f0 = max(1,self.seq.frames(1)-10);
     f1 = min(self.nframes,self.seq.frames(end)+10);
@@ -5243,7 +5247,10 @@ methods
     end
     
     self.isplaying = false;
-    set(self.playstopbutton,'string','Play','backgroundcolor',[0,.5,0]);
+    set(self.playstopbutton,'string','Play');
+    if ~ismac() ,
+      set(self.playstopbutton,'backgroundcolor',[0,.5,0]);
+    end
     %guidata(hObject,self);
   end  % method
 
@@ -5578,11 +5585,11 @@ methods
     % splintered from fixerrorsgui 6/21/12 JAB
     
     im = self.readframe(self.f);
-    if( self.doFlipUpDown )
-      for channel = 1:size( im, 3 )
-        im(:,:,channel) = flipud( im(:,:,channel) );
-      end
-    end
+%     if( self.doFlipUpDown )
+%       for channel = 1:size( im, 3 )
+%         im(:,:,channel) = flipud( im(:,:,channel) );
+%       end
+%     end
     set(self.him,'cdata',im);
     for fly = 1:self.nflies,
       fixUpdateFly(self,fly);
@@ -5657,25 +5664,29 @@ methods
   
   
   % -----------------------------------------------------------------------  
-  function setFlySelectedInView(self,fly,v)
+  function setFlySelectedInView(self,iFly,isSelected)
     % set the selected state for a fly
     % splintered from fixerrorsgui 6/23/12 JAB
-    if v,
-      set(self.hellipse(fly),'color',self.colors(fly,:)*.5+.5,'linewidth',3);
-      set(self.hcenter(fly),'visible','off');
-      set(self.hleft(fly),'visible','off');
-      set(self.hright(fly),'visible','off');
-      set(self.hhead(fly),'visible','off');
-      set(self.htail(fly),'visible','off');
-      set(self.hpath(fly),'linewidth',2);
+    if isSelected,
+      % Make the ellipse wider and brighter, hide the resizing handles, and
+      % make the trail wider
+      set(self.hellipse(iFly),'color',self.colors(iFly,:)*.5+.5,'linewidth',3);
+      set(self.hcenter(iFly),'visible','off');
+      set(self.hleft(iFly),'visible','off');
+      set(self.hright(iFly),'visible','off');
+      set(self.hhead(iFly),'visible','off');
+      set(self.htail(iFly),'visible','off');
+      set(self.hpath(iFly),'linewidth',2);
     else
-      set(self.hellipse(fly),'color',self.colors(fly,:),'linewidth',2);
-      set(self.hcenter(fly),'visible','on');
-      set(self.hleft(fly),'visible','on');
-      set(self.hright(fly),'visible','on');
-      set(self.hhead(fly),'visible','on');
-      set(self.htail(fly),'visible','on');
-      set(self.hpath(fly),'linewidth',1);
+      % make the ellipse the normal width, show the resize handles, and
+      % make that trail the normal size
+      set(self.hellipse(iFly),'color',self.colors(iFly,:),'linewidth',2);
+      set(self.hcenter(iFly),'visible','on');
+      set(self.hleft(iFly),'visible','on');
+      set(self.hright(iFly),'visible','on');
+      set(self.hhead(iFly),'visible','on');
+      set(self.htail(iFly),'visible','on');
+      set(self.hpath(iFly),'linewidth',1);
     end
   end  % method
 
@@ -5866,7 +5877,7 @@ methods
   end  % method
 
   % -----------------------------------------------------------------------  
-  function trackFlies(self,flies,f0,f1)
+  function trackFlies(self,iFlies,iFirstFrame,iLastFrame)
     % track multiple flies
     % splintered from fixerrorsgui 6/23/12 JAB
     
@@ -5874,19 +5885,19 @@ methods
     
     minPrior = .01;
     se = strel('disk',1);
-    nflies = length(flies);
-    mu0 = zeros(nflies,2);
-    S0 = zeros([2,2,nflies]);
-    priors0 = zeros(1,nflies);
-    for i = 1:nflies,
-      fly = flies(i);
-      j = self.trx(fly).off+(f0);
-      mu0(i,:) = [self.trx(fly).x(j),self.trx(fly).y(j)];
-      S0(:,:,i) = axes2cov(self.trx(fly).a(j)*2,self.trx(fly).b(j)*2,self.trx(fly).theta(j));
-      priors0(i) = self.trx(fly).a(j)*self.trx(fly).b(j);
+    nFlies = length(iFlies);
+    mu0 = zeros(nFlies,2);
+    S0 = zeros([2,2,nFlies]);
+    priors0 = zeros(1,nFlies);
+    for i = 1:nFlies,
+      iFly = iFlies(i);
+      j = self.trx(iFly).off+(iFirstFrame);
+      mu0(i,:) = [self.trx(iFly).x(j),self.trx(iFly).y(j)];
+      S0(:,:,i) = axes2cov(self.trx(iFly).a(j)*2,self.trx(iFly).b(j)*2,self.trx(iFly).theta(j));
+      priors0(i) = self.trx(iFly).a(j)*self.trx(iFly).b(j);
     end
     priors0 = priors0 / sum(priors0);
-    for f = f0+1:f1
+    for iFrame = iFirstFrame+1:iLastFrame
       
       drawnow('update');
       drawnow('expose');
@@ -5896,14 +5907,14 @@ methods
       end
       
       % get foreground/background classification around flies
-      [isfore,dfore,xpred,ypred,thetapred,r0,r1,c0,c1,~] = backgroundSubtraction(self,flies,f);
+      [isfore,dfore,xpred,ypred,thetapred,r0,r1,c0,c1,~] = self.backgroundSubtraction(iFlies,iFrame);
       
       [cc,ncc] = bwlabel(isfore);
       isdeleted = [];
       for fly2 = 1:self.nflies,
-        if ismember(fly2,flies), continue; end
-        if ~isalive(self.trx(fly2),f), continue; end
-        i2 = self.trx(fly2).off+(f);
+        if ismember(fly2,iFlies), continue; end
+        if ~isalive(self.trx(fly2),iFrame), continue; end
+        i2 = self.trx(fly2).off+(iFrame);
         if self.trx(fly2).x(i2)-(2*self.trx(fly2).a(i2)+5) > c1 || ...
             self.trx(fly2).x(i2) + (2*self.trx(fly2).a(i2)+5)< c0 || ...
             self.trx(fly2).y(i2) + (2*self.trx(fly2).a(i2)+5)< r0 || ...
@@ -5924,7 +5935,7 @@ methods
             continue;
           end
           fracoverlap = sum(dfore((cc==j) & bw)) / sum(dfore(cc==j));
-          if nflies == 1
+          if nFlies == 1
             testfracoverlap = 0.75;
           else
             testfracoverlap = 0.85;
@@ -5934,7 +5945,7 @@ methods
             isdeleted(end+1) = j;  %#ok
             cc(cc==j) = 0;
           elseif fracoverlap > 0
-            if nflies == 1
+            if nFlies == 1
               bw = imdilate(bw,se);
             end
             isfore(bw) = false;
@@ -5965,12 +5976,14 @@ methods
       end
       % choose the closest connected component
       if ~any(isfore(:)),
-        msgbox(sprintf('Frame %d: Could not find the selected fly, quitting.',f));
-        self.trackingstoppedframe = f;
+        msgbox(sprintf('Frame %d: Could not find the selected fly, quitting.',iFrame));
+        self.trackingstoppedframe = iFrame;
         return;
       end
       
-      if nflies == 1
+      % The nFlies==1 code doesn't seem to work, so don't use it.
+      % if nFlies == 1
+      if false ,
         % fit an ellipse
         [tmp1,~,cc] = unique(cc);
         cc = reshape(cc,size(isfore))-1;
@@ -5980,13 +5993,14 @@ methods
         xfit = zeros(1,ncc);
         yfit = zeros(1,ncc);
         thetafit = zeros(1,ncc);
+        Sfit=zeros(2,2,ncc);
         for j = 1:ncc,
           [y,x] = find(cc==j);
           w = dfore(cc==j);
-          [nmu,S] = weighted_mean_cov([x,y],w(:));
+          [nmu,Sfit(:,:,j)] = weighted_mean_cov([x,y],w(:));
           xfit(j) = nmu(1);
           yfit(j) = nmu(2);
-          [~,~,thetafit(j)] = cov2ell(S);
+          [~,~,thetafit(j)] = cov2ell(Sfit(:,:,j));
         end
         xfit = xfit + c0 - 1;
         yfit = yfit + r0 - 1;
@@ -5998,47 +6012,47 @@ methods
         end
         mu(1,1) = xfit(j);
         mu(1,2) = yfit(j);
-        priors = 1;
-        
+        S=Sfit(:,:,j);
+        priors = 1;        
       else
         % use GMM to fit multiple ellipses
         w = dfore(isfore);
         w = w / max(w);
-        mix = gmm(2, nflies, 'full');
+        mix = gmm(2, nFlies, 'full');
         mix.centres = mu0;
         mix.covars = S0;
         mix.priors = priors0;
         [y,x] = find(isfore);
         x = x + c0 - 1;
         y = y + r0 - 1;
-        [mu,S,priors] = mygmm([x(:),y(:)],nflies,'start',mix,'weights',w)
+        [mu,S,priors] = mygmm([x(:),y(:)],nFlies,'start',mix,'weights',w)
         if any(priors < minPrior),
-          msgbox(sprintf('Frame %d: Prior for a fly got too small, aborting.',f));
-          self.trackingstoppedframe = f;
+          msgbox(sprintf('Frame %d: Prior for a fly got too small, aborting.',iFrame));
+          self.trackingstoppedframe = iFrame;
           return;
         end
       end
       
       % update trx structures
-      for i = 1:nflies,
-        fly = flies(i);
-        j = self.trx(fly).off+(f);
-        self.trx(fly).x(j) = mu(i,1);
-        self.trx(fly).y(j) = mu(i,2);
+      for i = 1:nFlies,
+        iFly = iFlies(i);
+        j = self.trx(iFly).off+(iFrame);
+        self.trx(iFly).x(j) = mu(i,1);
+        self.trx(iFly).y(j) = mu(i,2);
         [a,b,theta] = cov2ell(S(:,:,i));
-        self.trx(fly).a(j) = a/2;
-        self.trx(fly).b(j) = b/2;
-        dtheta = modrange(theta-self.trx(fly).theta(j-1),-pi/2,pi/2);
-        self.trx(fly).theta(j) = modrange(self.trx(fly).theta(j-1)+dtheta,-pi,pi);
-        self.trx(fly).nframes = length(self.trx(fly).x);
-        self.trx(fly).endframe = self.trx(fly).firstframe + self.trx(fly).nframes - 1;
-        if isfield( self, 'timestamps' ) && length( self.timestamps ) >= f && isfield( self.trx(fly), 'timestamps' )
-          self.trx(fly).timestamps(j) = self.timestamps(f);
+        self.trx(iFly).a(j) = a/2;
+        self.trx(iFly).b(j) = b/2;
+        dtheta = modrange(theta-self.trx(iFly).theta(j-1),-pi/2,pi/2);
+        self.trx(iFly).theta(j) = modrange(self.trx(iFly).theta(j-1)+dtheta,-pi,pi);
+        self.trx(iFly).nframes = length(self.trx(iFly).x);
+        self.trx(iFly).endframe = self.trx(iFly).firstframe + self.trx(iFly).nframes - 1;
+        if isfield( self, 'timestamps' ) && length( self.timestamps ) >= iFrame && isfield( self.trx(iFly), 'timestamps' )
+          self.trx(iFly).timestamps(j) = self.timestamps(iFrame);
         end
       end
-      self.f = f;
-      if self.trx(fly).endframe < self.f
-        self.trx(fly).endframe = f;
+      self.f = iFrame;
+      if self.trx(iFly).endframe < self.f
+        self.trx(iFly).endframe = iFrame;
       end
       %guidata(self.fig,self);
       
@@ -6052,12 +6066,12 @@ methods
         miny = min(mu(:,2));
         maxy = max(mu(:,2));
         if minx < xlim(1) || maxx > xlim(2) || miny < ylim(1) || maxy > ylim(2)
-          seq.frames = [max(f0,f-20),min(f1,f+20)];
-          seq.flies = flies;
-          fix_ZoomInOnSeq(self,seq);
+          seq.frames = [max(iFirstFrame,iFrame-20),min(iLastFrame,iFrame+20)];
+          seq.flies = iFlies;
+          self.zoomInOnSeq(seq);
         end
       else
-        set(self.frameedit,'string',sprintf('%05d',f));
+        set(self.frameedit,'string',sprintf('%05d',iFrame));
       end
       
       mu0 = mu;
@@ -6069,60 +6083,83 @@ methods
   
   
   % -----------------------------------------------------------------------
-  function [isfore,dfore,xpred,ypred,thetapred,r0,r1,c0,c1,im] = backgroundSubtraction(self,flies,f)
-    trx = self.trx(flies);
-    nflies = length(flies);
-    boxrad = self.maxjump;
+  function [isForeground, ...
+            diffFromBackgroundBounded, ...
+            xPredicted,yPredicted,thetaPredicted, ...
+            r0,r1,c0,c1, ...
+            imBounded] = ...
+             backgroundSubtraction(self,iFlies,iFrameInVideo)
+  
+    trx = self.trx(iFlies);
+    nFlies = length(iFlies);
+    boxRadius = self.maxjump;
     
-    xpred = zeros(1,nflies);
-    ypred = zeros(1,nflies);
-    thetapred = zeros(1,nflies);
-    for j = 1:nflies,
-      i = max( trx(j).off+(f), 2 ); % first frame
-      x1 = trx(j).x(i-1);
-      y1 = trx(j).y(i-1);
-      theta1 = trx(j).theta(i-1);
-      if i == 2,
-        xpred(j) = x1;
-        ypred(j) = y1;
-        thetapred(j) = theta1;
+    xPredicted = zeros(1,nFlies);
+    yPredicted = zeros(1,nFlies);
+    thetaPredicted = zeros(1,nFlies);
+    for iFly = 1:nFlies,
+      iFrameInTrack = max( trx(iFly).off+(iFrameInVideo), 2 ); % first frame
+      xPrevious = trx(iFly).x(iFrameInTrack-1);
+      yPrevious = trx(iFly).y(iFrameInTrack-1);
+      thetaPrevious = trx(iFly).theta(iFrameInTrack-1);
+      if iFrameInTrack == 2,
+        xPredicted(iFly) = xPrevious;
+        yPredicted(iFly) = yPrevious;
+        thetaPredicted(iFly) = thetaPrevious;
       else
-        x2 = trx(j).x(i-2);
-        y2 = trx(j).y(i-2);
-        theta2 = trx(j).theta(i-2);
-        [xpred(j),ypred(j),thetapred(j)] = cvpred(x2,y2,theta2,x1,y1,theta1);
+        xTwoBack = trx(iFly).x(iFrameInTrack-2);
+        yTwoBack = trx(iFly).y(iFrameInTrack-2);
+        thetaTwoBack = trx(iFly).theta(iFrameInTrack-2);
+        [xPredicted(iFly),yPredicted(iFly),thetaPredicted(iFly)] = ...
+          cvpred(xTwoBack,yTwoBack,thetaTwoBack, ...
+                 xPrevious,yPrevious,thetaPrevious);
       end
     end
     
-    r0 = max(floor(min(ypred)-boxrad),1); r1 = min(ceil(max(ypred)+boxrad),self.nr);
-    c0 = max(floor(min(xpred)-boxrad),1); c1 = min(ceil(max(xpred)+boxrad),self.nc);
-    im = self.readframe(f);
-    if( self.doFlipUpDown )
-      for channel = 1:size( im, 3 )
-        im(:,:,channel) = flipud( im(:,:,channel) );
-      end
-    end
-    im = double(im(r0:r1,c0:c1));
+    r0 = max(floor(min(yPredicted)-boxRadius),1); r1 = min(ceil(max(yPredicted)+boxRadius),self.nr);
+    c0 = max(floor(min(xPredicted)-boxRadius),1); c1 = min(ceil(max(xPredicted)+boxRadius),self.nc);
+    im = self.readframe(iFrameInVideo);
+%     if self.doFlipUpDown ,
+%       im=flipdim(im,1);
+% %       for channel = 1:size( im, 3 )
+% %         im(:,:,channel) = flipud( im(:,:,channel) );
+% %       end
+%     end
+    im=double(im);
+    bg=double(self.backgroundImageForCurrentAutoTrack());
+    diffFromBackground = im - bg;  %#ok
+
+%     figure; imagesc(im); colormap(gray); axis image; title('im');
+%     figure; imagesc(bg); colormap(gray); axis image; title('bg');
+%     maxAbs=max(abs(diffFromBackground(:)));
+%     figure; imagesc(diffFromBackground,[-maxAbs +maxAbs]); colormap(bipolar()); axis image; title('diffFromBackground'); colorbar();
+
+    imBounded = im(r0:r1,c0:c1);
+    bgBounded=bg(r0:r1,c0:c1);
+    diffFromBackgroundBounded = imBounded - bgBounded;
     
-    bg = self.bgcurr(r0:r1,c0:c1);
-    dfore = im - bg;
-    if self.lighterthanbg == 1
-      dfore = max(dfore,0);
-    elseif self.lighterthanbg == -1
-      dfore = max(-dfore,0);
+%     figure; imagesc(imBounded); colormap(gray); axis image; title('imBounded');
+%     figure; imagesc(bgBounded); colormap(gray); axis image; title('bgBounded');
+%     maxAbs=max(abs(diffFromBackgroundBounded(:)));
+%     figure; imagesc(diffFromBackgroundBounded,[-maxAbs +maxAbs]); colormap(bipolar()); axis image; title('diffFromBackgroundBounded'); colorbar();
+    
+    if self.foregroundSign == 1
+      diffFromBackgroundBoundedRectified = max(diffFromBackgroundBounded,0);
+    elseif self.foregroundSign == -1
+      diffFromBackgroundBoundedRectified = max(-diffFromBackgroundBounded,0);
     else
-      dfore = abs(dfore);
+      diffFromBackgroundBoundedRectified = abs(diffFromBackgroundBounded);
     end
-    isfore = dfore >= self.bgthresh;
+    isForeground = (diffFromBackgroundBoundedRectified>=self.bgthresh);
     se = strel('disk',1);
-    isfore = imclose(isfore,se);
-    isfore = imopen(isfore,se);
+    isForeground = imclose(isForeground,se);
+    isForeground = imopen(isForeground,se);
   end  % method
     
   
   % -----------------------------------------------------------------------
-  function bgmed = getPersistentBackgroundImage(self)
-    bgmed=self.bgmed;
+  function backgroundImage = getBackgroundImage(self)
+    backgroundImage=self.backgroundImage;
   end
 
   
@@ -6140,13 +6177,13 @@ methods
   
   % -----------------------------------------------------------------------
   function lighterthanbg = getForegroundSign(self)
-    lighterthanbg=self.lighterthanbg;
+    lighterthanbg=self.foregroundSign;
   end
 
   
   % -----------------------------------------------------------------------
   function setForegroundSign(self,newValue)
-    self.lighterthanbg=newValue;
+    self.foregroundSign=newValue;
   end
 
   
@@ -6169,14 +6206,14 @@ methods
 
   
   % -----------------------------------------------------------------------
-  function setCurrentBackgroundImageToPersistent(self)
-    self.bgcurr=self.bgcurr;
+  function initializeBackgroundImageForCurrentAutoTrack(self)
+    self.backgroundImageForCurrentAutoTrack=self.backgroundImageForCurrentAutoTrack;
   end
   
   
   % -----------------------------------------------------------------------
-  function setCurrentBackgroundImage(self,newValue)
-    self.bgcurr=newValue;
+  function setBackgroundImageForCurrentAutoTrack(self,newValue)
+    self.backgroundImageForCurrentAutoTrack=newValue;
   end
 
   

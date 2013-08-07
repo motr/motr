@@ -1,3 +1,4 @@
+function varargout = read_ann(filename,varargin)
 % [param1,param2,...] = read_ann(filename,'param1','param2',...)
 %
 % params:
@@ -18,7 +19,6 @@
 % fracframesisback, expbgfgmodel_filename, use_expbgfgmodel, 
 % expbgfgmodel_llr_thresh, min_frac_frames_isback,
 % background_center, background_dev, movie_height, movie_width
-function varargout = read_ann(filename,varargin)
 
 if nargin == 1,
   readall = true;
@@ -37,6 +37,13 @@ while true,
   end
 
   [param,value] = read_line(s,fid);
+%   if numel(value)==1
+%     param
+%     value
+%   else
+%     param
+%     size(value)
+%   end
   if isempty(param),
     continue;
   end;
@@ -55,6 +62,10 @@ end;
 
 fclose(fid);
 
+end  % function
+
+
+% -------------------------------------------------------------------------
 function out = set_output(param,value,in,out)
 
 for i = 1:length(in),
@@ -63,6 +74,10 @@ for i = 1:length(in),
   end;
 end;
 
+end  % function
+
+
+% -------------------------------------------------------------------------
 function [param,value] = read_line(s,fid)
 
 i = strfind(s,':');
@@ -102,3 +117,5 @@ else
 end;
 
 param = strrep(param,' ','_');
+
+end  % function

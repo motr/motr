@@ -1,4 +1,4 @@
-function [hEllipse,X,Y] = ellipseupdate(h,a,b,x0,y0,phi,lineStyle)
+function [hEllipse,X,Y] = ellipseupdate(h,a,b,x0,y0,phi)
 %ELLIPSEDRAW can draw an arbitrary ellipse with given parameters.
 %   The properties of that ellipse plot can be customized 
 %   by setting the ellipse handle. 
@@ -30,33 +30,6 @@ function [hEllipse,X,Y] = ellipseupdate(h,a,b,x0,y0,phi,lineStyle)
 % Dept. Mechanical & Aerospace Engineering, NC State University.
 % Copyright (c)2003, Lei Wang <WangLeiBox@hotmail.com>
 %$Revision: 1.1 $  $ 4/1/2003 5:42:24 PM $
-
-if (nargin < 3)||(nargin > 7),
-    error('Please see help for INPUT DATA.');
-    
-elseif nargin == 3
-    x0 = 0;     y0 = 0;
-    phi = 0;    lineStyle = 'b-';
-    
-elseif nargin == 4
-    if ischar(x0) == 1
-        lineStyle = x0;         
-        x0 = 0; y0 = 0;
-        phi = 0; 
-    else
-        phi = x0;  
-        x0 = 0; y0 = 0;
-        lineStyle = 'b-';
-    end
-    
-elseif nargin == 5     
-    phi = 0;    lineStyle = 'b-';
-    
-elseif nargin == 6
-    lineStyle = 'b-';
-end
-
-
 
 theta = [-0.03:0.01:2*pi];
 

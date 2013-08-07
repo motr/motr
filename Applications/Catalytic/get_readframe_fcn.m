@@ -1,3 +1,4 @@
+function [readframe,nframes,fid,headerinfo] = get_readframe_fcn(filename)
 % [readframe,nframes,fid,headerinfo] = get_readframe_fcn(filename)
 % get_readframe_fcn inputs the name of a video, opens this video, and creates a
 % function that can be used for random access to frames in the video. it can
@@ -20,8 +21,6 @@
 % filename. you must close fid yourself when you are done using the returned
 % readframe. 
 % headerinfo is a struct with fields depending on the type of movie
-
-function [readframe,nframes,fid,headerinfo] = get_readframe_fcn(filename)
 
 [~,ext] = splitext(filename);
 if strcmpi(ext,'.fmf'),
@@ -48,29 +47,11 @@ elseif strcmpi(ext,'.seq'),
   fid = fopen(filename,'r');
 else
   fid = 0;
-  try_videoreader = exist( 'VideoReader', 'class' );
-  if try_videoreader
-     fprintf( 1, 'reading AVI with VideoReader\n' );
-     try
-       readerobj = VideoReader(filename);
-       headerinfo = get( readerobj );
-       nframes = get( readerobj, 'numberofframes' );
-       readframe = @(f) read(readerobj,f);
-     catch le
-        warning( 'VideoReader failed\n' );
-        try_videoreader = false;
-     end
-  end
-  if ~try_videoreader
-     fprintf( 1, 'reading AVI with mmreader\n' );
-     readerobj = mmreader(filename);
-    nframes = get(readerobj,'NumberOfFrames');
-    if isempty(nframes),
-      % approximate nframes from duration
-      nframes = get(readerobj,'Duration')*get(readerobj,'FrameRate');
-    end
-    readframe = @(f) flipdim(read(readerobj,f),1);
-    headerinfo = get(readerobj);
-    headerinfo.type = 'avi';
-  end
+  % fprintf( 1, 'reading AVI with VideoReader\n' );
+  vr = VideoReader(filename);
+  headerinfo = get( vr );
+  nframes = get( vr, 'numberofframes' );
+  readframe = @(f) vr.read(f);
 end
+
+end  % function
