@@ -35,7 +35,7 @@ fid=fopen(annFileName,'w');
 fprintf(fid,'Ctrax header\n');
 fprintf(fid,'maxmajor:%f\n',maxQuarterMajorAxisLength);
 fprintf(fid,'meanmajor:%f\n',meanQuarterMajorAxisLength);
-fprintf(fid,'max_jump:%f\n',200);  % I think this is interpreted as being in pels
+fprintf(fid,'max_jump:%f\n',50);  % I think this is interpreted as being in pels
   % if the error relative to the predicted position is larger than
   % max_jump, Ctrax starts a new trajectory
 fprintf(fid,'center_dampen:%f\n',0);

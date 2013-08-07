@@ -162,6 +162,7 @@ properties
   hmanytrack
   backgroundImageForCurrentAutoTrack
   stoptracking
+  trackingstoppedframe
   
   ang_dist_wt
   maxjump
@@ -220,7 +221,7 @@ methods
     self.undolist = {};
     self.needssaving = 0;
     
-    self.bgthresh = 10;
+    %self.bgthresh = 10;
     self.bgcolor = nan;
     
     % initialize data structures
@@ -325,11 +326,17 @@ methods
     %axes(self.mainaxes);
     im = self.readframe(self.f);
     [self.nr,self.nc,self.ncolors] = size(im);
+    if ~isempty(self.him) && ishandle(self.him) ,
+      delete(self.him);
+    end
     self.him = image('parent',self.mainaxes,'cdata',im);
     %set(self.fig,'colormap',gray(256));
     set(self.mainaxes,'clim',[min(im(:)) max(im(:))], ...
-        'xtickmode','auto',...
-        'ytickmode','auto');
+                      'xlim',[0.5 self.nc+0.5], ...
+                      'ylim',[0.5 self.nr+0.5], ...
+                      'xtickmode','auto',...
+                      'ytickmode','auto')
+      
     %axis(self.mainaxes,'image');
     %hold(self.mainaxes,'on');
     %zoom(self.fig,'reset');
@@ -3043,6 +3050,18 @@ methods
   
   
   % -------------------------------------------------------------------------
+  function openGivenFileName(self,fileName)
+    if isFileNameAbsolute(fileName)
+      fileNameAbs=fileName;
+    else
+      fileNameAbs=fullfile(pwd(),fileName);
+    end
+    self.openGivenFileNameAbs(fileNameAbs);
+  end
+   
+  
+    
+  % -------------------------------------------------------------------------
   function openGivenFileNameAbs(self,fileNameAbs)
     
     % get self
@@ -3128,7 +3147,7 @@ methods
                  'n_bg_std_thresh_low');
       self.ang_dist_wt=ang_dist_wt;
       self.maxjump=max_jump;
-      self.bgthresh=fif(isempty(n_bg_std_thresh_low),10,n_bg_std_thresh_low);
+      self.bgthresh=fif(isempty(n_bg_std_thresh_low),100,n_bg_std_thresh_low);
       if bg_type == 0,
         self.foregroundSign = 1;
       elseif bg_type == 1,
@@ -3173,6 +3192,8 @@ methods
     self.updateControlVisibilityAndEnablement();
     self.restorePointer(oldPointer);
     
+    % reset the figure zoom mode
+    zoom(self.fig,'reset');
     % Play the first sequence
     %play(self);
     
@@ -3251,7 +3272,6 @@ methods
     self.undolist = {};
     self.needssaving = 0;
     
-    self.bgthresh = 10;
     self.bgcolor = nan;
     
     % initialize data structures
@@ -3277,10 +3297,13 @@ methods
     
     % Update self structure
     self.editMode='';
-    % guidata(fig, self);
+    self.zoomingIn=false;
+    self.zoomingOut=false;
+    updateFigureZoomMode(self)
     
     % Update the enablement and visibility of the UI
     self.updateControlVisibilityAndEnablement();
+    zoom(self.fig,'reset');
   end  % method
   
   
@@ -3443,10 +3466,10 @@ methods
       'Units','characters',...
       'CloseRequestFcn',@(hObject,eventdata)self.quit(),...
       'Color', get(0,'DefaultUicontrolBackgroundColor'), ...
+      'MenuBar','none',...
       'Colormap',gray(256),...
       'IntegerHandle','off',...
       'KeyPressFcn',@(hObject,eventdata)self.keyPressed(hObject,eventdata),...
-      'MenuBar','none',...
       'Name','Catalytic',...
       'NumberTitle','off',...
       'PaperPosition',get(0,'defaultfigurePaperPosition'),...
@@ -4996,6 +5019,15 @@ methods
           onIff(strcmpi(editMode,'interpolate...')&& ...
                 (self.nselect==0)));
 
+    % auto-track panel
+    set(self.autotrackfirstframebutton, ...
+        'enable', ...
+        onIff(strcmpi(editMode,'auto-track...') && ...
+              (self.nselect>0) && ...
+              (~isempty(self.selected))));
+    set(self.autotrackdoitbutton,'enable',onIff(strcmpi(editMode,'auto-track...')&&(self.autotrackframe>0)));
+    set(self.autotracksettingsbutton,'enable',onIff(strcmpi(editMode,'auto-track...')&&(self.autotrackframe>0)));
+    
     % auto-track many panel
     set(self.manytrackfirstframebutton, ...
         'enable', ...
@@ -5007,8 +5039,6 @@ methods
     
     % other panels
     set(self.extenddoitbutton,'enable',onIff(strcmpi(editMode,'extend track...')&&(self.extendFlySelected)));
-    set(self.autotrackdoitbutton,'enable',onIff(strcmpi(editMode,'auto-track...')&&(self.autotrackframe>0)));
-    set(self.autotracksettingsbutton,'enable',onIff(strcmpi(editMode,'auto-track...')&&(self.autotrackframe>0)));
     set(self.flipdoitbutton,'enable',onIff(strcmpi(editMode,'flip orientation...')&&(self.flipframe>0)));
     set(self.addnewtrackdoitbutton, 'enable',onIff(strcmpi(editMode,'add new track...')));
     
@@ -5907,7 +5937,7 @@ methods
       end
       
       % get foreground/background classification around flies
-      [isfore,dfore,xpred,ypred,thetapred,r0,r1,c0,c1,~] = self.backgroundSubtraction(iFlies,iFrame);
+      [isfore,dfore,xpred,ypred,thetapred,r0,r1,c0,c1,~] = self.backgroundSubtraction(iFlies,iFrame);  %#ok
       
       [cc,ncc] = bwlabel(isfore);
       isdeleted = [];
@@ -5984,36 +6014,36 @@ methods
       % The nFlies==1 code doesn't seem to work, so don't use it.
       % if nFlies == 1
       if false ,
-        % fit an ellipse
-        [tmp1,~,cc] = unique(cc);
-        cc = reshape(cc,size(isfore))-1;
-        if tmp1(1) == 0
-          ncc = length(tmp1)-1;
-        end
-        xfit = zeros(1,ncc);
-        yfit = zeros(1,ncc);
-        thetafit = zeros(1,ncc);
-        Sfit=zeros(2,2,ncc);
-        for j = 1:ncc,
-          [y,x] = find(cc==j);
-          w = dfore(cc==j);
-          [nmu,Sfit(:,:,j)] = weighted_mean_cov([x,y],w(:));
-          xfit(j) = nmu(1);
-          yfit(j) = nmu(2);
-          [~,~,thetafit(j)] = cov2ell(Sfit(:,:,j));
-        end
-        xfit = xfit + c0 - 1;
-        yfit = yfit + r0 - 1;
-        if ncc == 1,
-          j = 1;
-        else
-          err = (xpred - xfit).^2 + (ypred - yfit).^2 + self.ang_dist_wt*(modrange(thetapred - thetafit,-pi/2,pi/2)).^2;
-          j = argmin(err);
-        end
-        mu(1,1) = xfit(j);
-        mu(1,2) = yfit(j);
-        S=Sfit(:,:,j);
-        priors = 1;        
+%         % fit an ellipse
+%         [tmp1,~,cc] = unique(cc);
+%         cc = reshape(cc,size(isfore))-1;
+%         if tmp1(1) == 0
+%           ncc = length(tmp1)-1;
+%         end
+%         xfit = zeros(1,ncc);
+%         yfit = zeros(1,ncc);
+%         thetafit = zeros(1,ncc);
+%         Sfit=zeros(2,2,ncc);
+%         for j = 1:ncc,
+%           [y,x] = find(cc==j);
+%           w = dfore(cc==j);
+%           [nmu,Sfit(:,:,j)] = weighted_mean_cov([x,y],w(:));
+%           xfit(j) = nmu(1);
+%           yfit(j) = nmu(2);
+%           [~,~,thetafit(j)] = cov2ell(Sfit(:,:,j));
+%         end
+%         xfit = xfit + c0 - 1;
+%         yfit = yfit + r0 - 1;
+%         if ncc == 1,
+%           j = 1;
+%         else
+%           err = (xpred - xfit).^2 + (ypred - yfit).^2 + self.ang_dist_wt*(modrange(thetapred - thetafit,-pi/2,pi/2)).^2;
+%           j = argmin(err);
+%         end
+%         mu(1,1) = xfit(j);
+%         mu(1,2) = yfit(j);
+%         S=Sfit(:,:,j);
+%         priors = 1;        
       else
         % use GMM to fit multiple ellipses
         w = dfore(isfore);
@@ -6025,7 +6055,7 @@ methods
         [y,x] = find(isfore);
         x = x + c0 - 1;
         y = y + r0 - 1;
-        [mu,S,priors] = mygmm([x(:),y(:)],nFlies,'start',mix,'weights',w)
+        [mu,S,priors] = mygmm([x(:),y(:)],nFlies,'start',mix,'weights',w);
         if any(priors < minPrior),
           msgbox(sprintf('Frame %d: Prior for a fly got too small, aborting.',iFrame));
           self.trackingstoppedframe = iFrame;
