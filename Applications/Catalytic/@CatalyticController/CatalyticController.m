@@ -6,9 +6,9 @@ properties
   seqs = [];
   moviename = [];
   trx = [];
-  annname = [];
+  %annname = [];
   params = [];
-  matname = [];
+  originalTrackFileName
   savename = [];
   readframe = [];  % a function handle, used to read a frame of the video
   nframes = [];
@@ -164,15 +164,23 @@ properties
   stoptracking
   trackingstoppedframe
   
-  ang_dist_wt
-  maxjump
   foregroundSign  % +1 if animals are white-on-black, 
                   % -1 if black-on-white, 
                   % 0 if they're just different than background
   isplaying=false
   
   zoomingIn=false
-  zoomingOut=false  
+  zoomingOut=false
+  
+  ctcVersion  % version of ctc file format
+  
+  % parameters used in detection of suspicious sequences
+  ang_dist_wt
+  maxjump  % in pels
+  center_dampen
+  angle_dampen
+  maxMajorAxisInPels  % N.B. Not semi- or quarter-major axis
+  meanMajorAxisInPels  % N.B. Not semi- or quarter-major axis
 end  % properties
 
 methods
@@ -185,9 +193,9 @@ methods
     self.seqs = [];
     self.moviename = [];
     self.trx = [];
-    self.annname = [];
+    %self.annname = [];
     self.params = [];
-    self.matname = [];
+    self.originalTrackFileName = [];
     self.savename = [];
     didload = false;
     self.readframe = [];
@@ -767,7 +775,12 @@ methods
     end
     self.seqs(self.seqi).type = ['dummy', self.seqs(self.seqi).type];
     
-    self.seqs = check_suspicious_sequences(self.trx,self.annname,self.seqs,self.params{:});
+    self.seqs = ...
+      check_suspicious_sequences_in_memory( ...
+        self.trx, ...
+        self.center_dampen,self.angle_dampen,self.maxjump,self.maxMajorAxisInPels,self.meanMajorAxisInPels,self.ang_dist_wt, ...
+        self.seqs, ...
+        self.params{:});
     
     setErrorTypes(self);
     
@@ -2657,7 +2670,7 @@ methods
     self.trx(fly).nframes = 1;
     self.trx(fly).moviename = self.trx(1).moviename;
     self.trx(fly).arena = self.trx(1).arena;
-    self.trx(fly).matname = self.trx(1).matname;
+    %self.trx(fly).matname = self.trx(1).matname;
     self.trx(fly).pxpermm = self.trx(1).pxpermm;
     self.trx(fly).fps = self.trx(1).fps;
     xlim = get( self.mainAxes, 'xlim' );
@@ -3006,7 +3019,7 @@ methods
     %defaultPath=self.data.defaultpath;
     defaultPath=pwd();
     [filename,pathname] = ...
-      uigetfile({'*.trf','Catalytic Files (*.trf)'}, ...
+      uigetfile({'*.ctc','Catalytic Files (*.ctc)'}, ...
       'Open...', ...
       defaultPath);
     if ~ischar(filename),
@@ -3048,16 +3061,17 @@ methods
     oldPointer=pointerToWatch(self);
     try
       % open the file
-      trf=load(fileNameAbs,'-mat');
+      ctc=load(fileNameAbs,'-mat');
       
       % read inputs
       self.isFileOpen=true;
-      self.seqs = trf.seqs;
-      self.moviename = trf.moviename;
-      self.trx = trf.trx;
-      self.annname = trf.annname;
-      self.params = trf.params;
-      self.matname = trf.matname;
+      self.ctcVersion=ctc.version;
+      self.seqs = ctc.seqs;
+      self.moviename = ctc.moviename;
+      self.trx = ctc.trx;
+      %self.annname = ctc.annname;
+      self.params = ctc.params;
+      self.originalTrackFileName = ctc.originalTrackFileName;
       self.savename = fileNameAbs;
       [self.readframe,self.nframes,self.fid] = get_readframe_fcn(self.moviename);
       
@@ -3104,36 +3118,45 @@ methods
       
       %self.foregroundSign = 1;
       self.bgcolor = nan;
-      [ang_dist_wt, ...
-       max_jump, ...
-       bg_algorithm, ...
-       background_median, ...
-       background_mean,...
-       bg_type, ...
-       n_bg_std_thresh_low] = ...
-        read_ann(self.annname, ...
-                 'ang_dist_wt', ...
-                 'max_jump',...
-                 'bg_algorithm', ...
-                 'background_median', ...
-                 'background_mean', ...
-                 'bg_type',...
-                 'n_bg_std_thresh_low');
-      self.ang_dist_wt=ang_dist_wt;
-      self.maxjump=max_jump;
-      self.bgthresh=fif(isempty(n_bg_std_thresh_low),100,n_bg_std_thresh_low);
-      if bg_type == 0,
-        self.foregroundSign = 1;
-      elseif bg_type == 1,
-        self.foregroundSign = -1;
-      else
-        self.foregroundSign = 0;
-      end
-      if strcmpi(bg_algorithm,'median'),
-        backgroundImageAsVector = background_median;
-      else
-        backgroundImageAsVector = background_mean;
-      end
+%       [ang_dist_wt, ...
+%        max_jump, ...
+%        bg_algorithm, ...
+%        background_median, ...
+%        background_mean,...
+%        bg_type, ...
+%        n_bg_std_thresh_low] = ...
+%         read_ann(self.annname, ...
+%                  'ang_dist_wt', ...
+%                  'max_jump',...
+%                  'bg_algorithm', ...
+%                  'background_median', ...
+%                  'background_mean', ...
+%                  'bg_type',...
+%                  'n_bg_std_thresh_low');
+%       self.ang_dist_wt=ang_dist_wt;
+%       self.maxjump=max_jump;
+%       self.bgthresh=fif(isempty(n_bg_std_thresh_low),100,n_bg_std_thresh_low);
+%       if bg_type == 0,
+%         self.foregroundSign = 1;
+%       elseif bg_type == 1,
+%         self.foregroundSign = -1;
+%       else
+%         self.foregroundSign = 0;
+%       end
+%       if strcmpi(bg_algorithm,'median'),
+%         backgroundImageAsVector = background_median;
+%       else
+%         backgroundImageAsVector = background_mean;
+%       end
+      self.ang_dist_wt=ctc.ang_dist_wt;
+      self.maxjump=ctc.maxjump;
+      self.bgthresh=ctc.bgthresh;
+      self.foregroundSign=ctc.foregroundSign;
+      self.backgroundImage=ctc.backgroundImage;
+      self.center_dampen=ctc.center_dampen;
+      self.angle_dampen=ctc.angle_dampen;
+      self.maxMajorAxisInPels=ctc.maxMajorAxisInPels;  % N.B. Not semi- or quarter-major axis
+      self.meanMajorAxisInPels=ctc.meanMajorAxisInPels;  % N.B. Not semi- or quarter-major axis
       
       % initialize data structures
       
@@ -3147,9 +3170,9 @@ methods
       self.plotFirstFrame();
       self.initializeDisplayPanel();
       self.setErrorTypes();
-      self.backgroundImage = reshape(backgroundImageAsVector,[self.nc,self.nr])';
-        % backgroundImageAsVector contains pels in row-major order, so
-        % have to deal with this
+%       self.backgroundImage = reshape(backgroundImageAsVector,[self.nc,self.nr])';
+%         % backgroundImageAsVector contains pels in row-major order, so
+%         % have to deal with this
       initializeKeyPressFcns(self);
       
       storePanelPositions(self);
@@ -3191,9 +3214,9 @@ methods
     self.seqs = [];
     self.moviename = [];
     self.trx = [];
-    self.annname = [];
+    %self.annname = [];
     self.params = [];
-    self.matname = [];
+    self.originalTrackFileName = [];
     self.savename = [];
     didload = false;
     self.readframe = [];
@@ -3361,7 +3384,7 @@ methods
         'Save As...', ...
         'Save...');
       [filename,pathname] = ...
-        uiputfile({'*.trf','Catalytic Files (*.trf)'}, ...
+        uiputfile({'*.ctc','Catalytic Files (*.ctc)'}, ...
         windowTitle, ...
         self.savename);
       if ~ischar(filename),
@@ -3376,16 +3399,29 @@ methods
     
     trx = fixIgnoredFields(self);  %#ok
     
+    version=self.ctcVersion;  %#ok
     seqs = self.seqs;  %#ok
     doneseqs = self.doneseqs;  %#ok
     moviename = self.moviename;  %#ok
     seqi = self.seqi;  %#ok
     params = self.params;  %#ok
-    matname = self.matname;  %#ok
-    annname = self.annname;  %#ok
+    originalTrackFileName = self.originalTrackFileName;  %#ok
+    %annname = self.annname;  %#ok
+    ang_dist_wt=self.ang_dist_wt;  %#ok
+    maxjump=self.maxjump;  %#ok
+    bgthresh=self.bgthresh;  %#ok
+    foregroundSign=self.foregroundSign;  %#ok
+    backgroundImage=self.backgroundImage;  %#ok
+    center_dampen=self.center_dampen;
+    angle_dampen=self.angle_dampen;
+    maxMajorAxisInPels=self.maxMajorAxisInPels;  % N.B. Not semi- or quarter-major axis
+    meanMajorAxisInPels=self.meanMajorAxisInPels;  % N.B. Not semi- or quarter-major axis
+    
     oldPointer=self.pointerToWatch();
     try
-      save(fileNameAbs,'trx','seqs','doneseqs','moviename','seqi','params','matname','annname');
+      save(fileNameAbs,'trx','seqs','doneseqs','moviename','seqi','params','originalTrackFileName', ...
+                       'ang_dist_wt','maxjump','bgthresh','foregroundSign','backgroundImage','version', ...
+                       'center_dampen', 'angle_dampen', 'maxMajorAxisInPels', 'meanMajorAxisInPels');
     catch excp  %#ok
       self.restorePointer(oldPointer);
       uiwait(errordlg(sprintf('Unable to save file %s',fileNameRel),'Error','modal'));

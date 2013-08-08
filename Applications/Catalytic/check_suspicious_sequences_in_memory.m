@@ -1,4 +1,9 @@
-function [seqs,params] = check_suspicious_sequences(dataperfly,annname,seqs,varargin)
+function [seqs,params] = ...
+  check_suspicious_sequences_in_memory(...
+    dataperfly, ...
+    center_dampen,angle_dampen,max_jump,maxmajor,meanmajor,ang_dist_wt, ...
+    seqs, ...
+    varargin)
 
 [MINERRJUMPFRAC,CLOSELENGTH,MINORIENTCHANGE,MAXMAJORFRAC,MINWALKVEL,MATCHERRCLOSE,...
   MINANGLEDIFF] = ...
@@ -10,9 +15,9 @@ nframes = max(getstructarrayfield(dataperfly,'endframe'));
 nseqs = length(seqs);
 
 %% read parameters
-[center_dampen,angle_dampen,max_jump,maxmajor,meanmajor,vel_angle_wt,ang_dist_wt] = ...
-  read_ann(annname,'center_dampen','angle_dampen','max_jump','maxmajor','meanmajor',...
-  'velocity_angle_weight','ang_dist_wt');
+% [center_dampen,angle_dampen,max_jump,maxmajor,meanmajor,vel_angle_wt,ang_dist_wt] = ...
+%   read_ann(annname,'center_dampen','angle_dampen','max_jump','maxmajor','meanmajor',...
+%   'velocity_angle_weight','ang_dist_wt');
 MINERRJUMP = MINERRJUMPFRAC*max_jump;
 LARGEMAJOR = meanmajor + MAXMAJORFRAC * (maxmajor-meanmajor);
 
@@ -51,7 +56,7 @@ for s = 1:nseqs,
     fly = seqs(s).flies;
     if dataperfly(fly).endframe ~= seqs(s).frames
       if dataperfly(fly).endframe == nframes
-         seqs(s).type = ['dummy', seqs(s).type];;
+         seqs(s).type = ['dummy', seqs(s).type];
       else
         seqs(s).frames = dataperfly(fly).endframe;
       end
@@ -66,7 +71,7 @@ for s = 1:nseqs,
   for fly = seqs(s).flies;
     isalive = f >= dataperfly(fly).firstframe & f <= dataperfly(fly).endframe;
     if ~any(isalive)
-       seqs(s).type = ['dummy', seqs(s).type];;
+       seqs(s).type = ['dummy', seqs(s).type];
       break;
     end
   end
@@ -83,7 +88,7 @@ for s = 1:nseqs,
       frames > dataperfly(flies(j)).endframe;
   end
   if all(badidx),
-     seqs(s).type = ['dummy', seqs(s).type];;
+     seqs(s).type = ['dummy', seqs(s).type];
   else
     seqs(s).frames = seqs(s).frames(~badidx);
   end
@@ -100,7 +105,7 @@ for s = 1:nseqs
   % error of prediction
   err = sqrt((xpred - dataperfly(fly).x(i)).^2 + (ypred - dataperfly(fly).y(i)).^2);
   if ~any(err > MINERRJUMP)
-    seqs(s).type = ['dummy', seqs(s).type];;
+    seqs(s).type = ['dummy', seqs(s).type];
   else
     i0 = find(err>MINERRJUMP,1);
     i1 = find(err>MINERRJUMP,1,'last');
@@ -120,7 +125,7 @@ for s = 1:nseqs
   % error of prediction
   err = abs(modrange(dataperfly(fly).theta(i)-thetapred,-pi,pi));
   if ~any(err > MINORIENTCHANGE)
-    seqs(s).type = ['dummy', seqs(s).type];;
+    seqs(s).type = ['dummy', seqs(s).type];
   else
     i0 = find(err>MINORIENTCHANGE,1);
     i1 = find(err>MINORIENTCHANGE,1,'last');
@@ -173,7 +178,7 @@ for s = 1:nseqs,
   end
   
   if ~any(isswap)
-    seqs(s).type = ['dummy', seqs(s).type];;
+    seqs(s).type = ['dummy', seqs(s).type];
   else
     i0 = find(isswap,1);
     i1 = find(isswap,1,'last');
@@ -190,7 +195,7 @@ for s = 1:nseqs
   i = dataperfly(fly).off+(f);
   islargemajor = dataperfly(fly).a(i) > LARGEMAJOR;
   if ~any(islargemajor),
-    seqs(s).type = ['dummy', seqs(s).type];;
+    seqs(s).type = ['dummy', seqs(s).type];
   else
     i0 = find(islargemajor,1);
     i1 = find(islargemajor,1,'last');
@@ -215,8 +220,8 @@ for s = 1:nseqs,
   dx = (dataperfly(fly).x(i(i0:i1)+1) - dataperfly(fly).x(i(i0:i1)-1))/2;
   dy = (dataperfly(fly).y(i(i0:i1)+1) - dataperfly(fly).y(i(i0:i1)-1))/2;
   if i(1) == 1,
-    dx = [dataperfly(fly).x(2)-dataperfly(fly).x(1),dx];
-    dy = [dataperfly(fly).y(2)-dataperfly(fly).y(1),dy];
+    dx = [dataperfly(fly).x(2)-dataperfly(fly).x(1),dx];  
+    dy = [dataperfly(fly).y(2)-dataperfly(fly).y(1),dy]; 
   end
   if i(end) == dataperfly(fly).nframes,
     dx = [dx,dataperfly(fly).x(end)-dataperfly(fly).x(end-1)];
@@ -227,7 +232,7 @@ for s = 1:nseqs,
   err = abs(modrange(velang-dataperfly(fly).theta(i),-pi,pi));
   isreverse = (v >= MINWALKVEL) & (err > MINANGLEDIFF);
   if ~any(isreverse), 
-    seqs(s).type = ['dummy', seqs(s).type];;
+    seqs(s).type = ['dummy', seqs(s).type];
     seqs(s).suspiciousness = 0;
   else
     i0 = find(isreverse,1);
