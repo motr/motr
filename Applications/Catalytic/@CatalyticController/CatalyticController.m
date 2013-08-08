@@ -138,6 +138,9 @@ properties
   fileMenuSaveAsItem
   fileMenuQuitItem
   
+  editMenu
+  editMenuUndoItem
+  
   swapfly
   swapfirstframe
 
@@ -987,7 +990,7 @@ methods
   
   % -------------------------------------------------------------------------
   % --- Executes on button press in undobutton.
-  function undobuttonTwiddled(self,hObject,eventdata)  %#ok
+  function editMenuUndoItemTwiddled(self,hObject,eventdata)  %#ok
     % hObject    handle to undobutton (see GCBO)
     % eventdata  reserved - to be defined in a future version of MATLAB
     % self    structure with self and user data (see GUIDATA)
@@ -3412,10 +3415,10 @@ methods
     bgthresh=self.bgthresh;  %#ok
     foregroundSign=self.foregroundSign;  %#ok
     backgroundImage=self.backgroundImage;  %#ok
-    center_dampen=self.center_dampen;
-    angle_dampen=self.angle_dampen;
-    maxMajorAxisInPels=self.maxMajorAxisInPels;  % N.B. Not semi- or quarter-major axis
-    meanMajorAxisInPels=self.meanMajorAxisInPels;  % N.B. Not semi- or quarter-major axis
+    center_dampen=self.center_dampen;  %#ok
+    angle_dampen=self.angle_dampen;  %#ok
+    maxMajorAxisInPels=self.maxMajorAxisInPels;    %#ok  % N.B. Not semi- or quarter-major axis
+    meanMajorAxisInPels=self.meanMajorAxisInPels;    %#ok  % N.B. Not semi- or quarter-major axis
     
     oldPointer=self.pointerToWatch();
     try
@@ -3492,6 +3495,7 @@ methods
     set(self.fileMenuCloseItem,'enable',onIff( isFileOpen));
     set(self.fileMenuSaveItem,'enable',onIff(isFileOpen&&thereAreUnsavedChanges));
     set(self.fileMenuSaveAsItem,'enable',onIff(isFileOpen));
+    set(self.editMenuUndoItem,'enable',onIff(isFileOpen&&isempty(editMode)&&~isempty(self.undolist)));
     
     % Buttons that are always visible
     %set(self.quitbutton,'enable','on');  % can always quit
