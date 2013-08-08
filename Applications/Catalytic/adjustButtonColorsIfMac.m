@@ -6,8 +6,7 @@ function adjustButtonColorsIfMac(buttons)
 if ismac()
   defaultBackgroundColor = get(0,'defaultUicontrolBackgroundColor');
   set(buttons,'ForegroundColor','k', ...
-              'BackgroundColor',defaultBackgroundColor, ...
-              'Cdata',[]);  
+              'BackgroundColor',defaultBackgroundColor);  
 end
                 
 end
