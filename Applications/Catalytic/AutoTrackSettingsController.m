@@ -91,14 +91,14 @@ classdef AutoTrackSettingsController < handle
       if ~isempty(self.roiImageGH) && ishandle(self.roiImageGH)
         delete(self.roiImageGH);
       end
-      foregroundSign=self.catalyticController.getForegroundSign();
-      if foregroundSign==1 ,
-        backgroundValue=0;
-      elseif foregroundSign==-1 ,
-        backgroundValue=255;
-      else
-        backgroundValue=0;
-      end
+%       foregroundSign=self.catalyticController.getForegroundSign();
+%       if foregroundSign==1 ,
+%         backgroundValue=0;
+%       elseif foregroundSign==-1 ,
+%         backgroundValue=255;
+%       else
+%         backgroundValue=0;
+%       end
       %imColorized=self.im;
       %imColorized(~isfore)=backgroundValue;
       imColorized=colorizeSegmentation(self.im,isfore);

@@ -27,7 +27,7 @@ properties
   motionobj
   plotpath
   nframesplot
-  zoommode
+  autoZoomMode
   undolist
   needssaving
   bgthresh
@@ -39,7 +39,7 @@ properties
   mainaxesaspectratio
   mainAxes
   plotpathmenu
-  zoommenu
+  autoZoomPopup
   nframesplotedit
   nr
   nc
@@ -226,9 +226,9 @@ methods
     self.nselect = 0;
     self.selected = [];
     self.motionobj = [];
-    self.plotpath = 'All Flies';
+    self.plotpath = 'All';
     self.nframesplot = 101;
-    self.zoommode = 'sequence';
+    self.autoZoomMode = 'Suspicious';
     self.undolist = {};
     self.needssaving = 0;
     
@@ -314,8 +314,8 @@ methods
   function initializeDisplayPanel(self)
     i = find(strcmpi(get(self.plotpathmenu,'string'),self.plotpath),1);
     set(self.plotpathmenu,'value',i);
-    i = find(strcmpi(get(self.zoommenu,'string'),self.zoommode),1);
-    set(self.zoommenu,'value',i);
+    i = find(strcmpi(get(self.autoZoomPopup,'string'),self.autoZoomMode),1);
+    set(self.autoZoomPopup,'value',i);
     set(self.nframesplotedit,'string',num2str(self.nframesplot));
   end  % method
   
@@ -373,7 +373,8 @@ methods
       updateFlyPathVisible(self);
       fixUpdateFly(self,fly);
     end
-    self.zoomInOnSeq();
+    % self.zoomInOnSeq();
+    self.autoZoom();
   end  % method
   
   
@@ -1622,35 +1623,52 @@ methods
   
   
   
-  % --- Executes on selection change in zoommenu.
-  function zoommenuTwiddled(self,hObject,eventdata)  %#ok
-    % hObject    handle to zoommenu (see GCBO)
+  % --- Executes on selection change in autoZoomPopup.
+  function autoZoomPopupTwiddled(self,hObject,eventdata)  %#ok
+    % hObject    handle to autoZoomPopup (see GCBO)
     % eventdata  reserved - to be defined in a future version of MATLAB
     % self    structure with self and user data (see GUIDATA)
     
-    % Hints: contents = get(hObject,'String') returns zoommenu contents as cell array
-    %        contents{get(hObject,'Value')} returns selected item from zoommenu
+    % Hints: contents = get(hObject,'String') returns autoZoomPopup contents as cell array
+    %        contents{get(hObject,'Value')} returns selected item from autoZoomPopup
     contents = get(hObject,'String');
     s = contents{get(hObject,'Value')};
-    % if strcmpi(self.zoommode,s),
+    % if strcmpi(self.autoZoomMode,s),
     %   return;
     % end
-    self.zoommode = s;
-    if strcmpi(s,'whole arena'),
-      xlim = [1,self.nc];
-      ylim = [1,self.nr];
-      % match aspect ratio
-      [xlim,ylim] = self.matchAspectRatio(xlim,ylim);
-      set(self.mainAxes,'xlim',xlim,'ylim',ylim);
-    else
-      zoomInOnSeq(self);
-    end
+    self.autoZoomMode = s;
+    self.autoZoom();
+%     if strcmpi(s,'whole arena'),
+%       xlim = [0.5 self.nc+0.5];
+%       ylim = [0.5 self.nr+0.5];
+%       % match aspect ratio
+%       %[xlim,ylim] = self.matchAspectRatio(xlim,ylim);
+%       set(self.mainAxes,'xlim',xlim,'ylim',ylim);
+%     else
+%       zoomInOnSeq(self);
+%     end
     % guidata(hObject,self);
   end  % method
   
+
+  % -----------------------------------------------------------------------
+  function autoZoom(self)
+    s=self.autoZoomMode;
+    if strcmpi(s,'whole arena'),
+      xlim = [0.5 self.nc+0.5];
+      ylim = [0.5 self.nr+0.5];
+      % match aspect ratio
+      %[xlim,ylim] = self.matchAspectRatio(xlim,ylim);
+      set(self.mainAxes,'xlim',xlim,'ylim',ylim);
+    elseif strcmpi(s,'suspicious')
+      zoomInOnSeq(self);
+    else
+      % do nothing
+    end
+  end
   
   
-  
+  % -----------------------------------------------------------------------
   % --- Executes on button press in interpolatefirstframebutton.
   function interpolatefirstframebuttonTwiddled(self,hObject,eventdata)  %#ok
     % hObject    handle to interpolatefirstframebutton (see GCBO)
@@ -3113,9 +3131,9 @@ methods
       self.nselect = 0;
       self.selected = [];
       self.motionobj = [];
-      self.plotpath = 'All Flies';
+      %self.plotpath = 'All Flies';
       self.nframesplot = 101;
-      self.zoommode = 'sequence';
+      %self.autoZoomMode = 'sequence';
       self.undolist = {};
       self.needssaving = 0;  % don't need to save b/c just opened
       
@@ -3266,9 +3284,9 @@ methods
     self.nselect = 0;
     self.selected = [];
     self.motionobj = [];
-    self.plotpath = 'All Flies';
+    %self.plotpath = 'All Flies';
     self.nframesplot = 101;
-    self.zoommode = 'sequence';
+    %self.autoZoomMode = 'sequence';
     self.undolist = {};
     self.needssaving = 0;
     
@@ -3764,7 +3782,8 @@ methods
     if nargin < 3 || ~isfirstframe,
       setFrameNumber(self);
       self.plotFrame();
-      zoomInOnSeq(self);
+      self.autoZoom();
+      %zoomInOnSeq(self);
     end
   end  % method
 
@@ -3955,8 +3974,8 @@ methods
         end
         continue;
       end
-      if strcmpi(self.plotpath,'all flies') || ...
-          (strcmpi(self.plotpath,'seq flies') && ismember(fly,self.seq.flies)),
+      if strcmpi(self.plotpath,'all') || ...
+          (strcmpi(self.plotpath,'suspicious') && ismember(fly,self.seq.flies)),
         set(self.hpath(fly),'visible','on');
       else
         set(self.hpath(fly),'visible','off');
@@ -4048,8 +4067,9 @@ methods
     % set plot axes to show a particular sequence number
     % splintered from fixerrorsgui 6/21/12 JAB
     
-    if strcmpi(self.zoommode,'whole arena'),
-      return;
+    if ~strcmpi(self.autoZoomMode,'suspicious'),
+      %set(self.mainAxes,'xlim',[0.5 self.nc+0.5],'ylim',[0.5 self.nr+0.5]);
+      return
     end
     
     if ~exist('seq','var'),
