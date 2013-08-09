@@ -11,7 +11,8 @@ classdef AutoTrackSettingsController < handle
     debugbutton
     fixbgpanel
     text4
-    bgcolorax
+    bgColorAxes
+    bgColorImageGH
     eyedropperRadiobutton
     fillbutton
     radiusText
@@ -23,18 +24,18 @@ classdef AutoTrackSettingsController < handle
     
     choosepatch  % true iff the user is currently in the process of drawing a rectangle in mainAxes
     % buttondownfcn
-    im  % the image
-    nr  % number of rows
-    nc  % number of cols
-    r0  % the lowest-index row of the ROI
-    r1  % the highest-index row of the ROI
-    c0  % the lowest-index col of the ROI
-    c1  % the highest-index col of the ROI
-    him
-    perimeterLine
-    hchoose
-    choosepatchpt1
-    choosepatchpt2
+    im  % the image, limited to the ROI, for the current frame
+%     nr  % number of rows in the ROI
+%     nc  % number of cols in the ROI
+    r0  % the lowest-index row of the ROI in the full frame
+    r1  % the highest-index row of the ROI in the full frame
+    c0  % the lowest-index col of the ROI in the full frame
+    c1  % the highest-index col of the ROI in the full frame
+    roiImageGH  % the image HG object, showing the ROI, with background blacked out (or whited out, depending)
+    perimeterLine  % the line showing the boundary between foreground and background
+    fillRegionBoundLine  % the line showing the current fill region
+    fillRegionAnchorCorner  % the corner of the fill region that is fixed during the drag
+    fillRegionPointerCorner  % the corner of the fill region under the pointer during the drag
   end  % properties
   
   methods
@@ -45,7 +46,7 @@ classdef AutoTrackSettingsController < handle
       
       % set defaults
       set(self.eyedropperRadiobutton,'value',0);
-      axes(self.bgcolorax);
+      %axes(self.bgColorAxes);
       self.catalyticController.initializeBackgroundImageForCurrentAutoTrack();
       set(self.thresholdText,'string',sprintf('Threshold: %.1f',self.catalyticController.getBackgroundThreshold()));
       lighterthanbg=self.catalyticController.getForegroundSign();
@@ -63,13 +64,16 @@ classdef AutoTrackSettingsController < handle
       
       self.showCurrentFrame();
       
-      bgcolor=self.catalyticController.getBackgroundColor();
-      if isempty(bgcolor) || isnan(bgcolor) ,
+      bgColor=self.catalyticController.getBackgroundColor();
+      if isempty(bgColor) || isnan(bgColor) ,
         self.catalyticController.setBackgroundColor(median(self.im(:)));
       end
-      axes(self.bgcolorax);
-      image(repmat(uint8(self.catalyticController.getBackgroundColor()),[1,1,3]));
-      axis off;      
+      %axes(self.bgColorAxes);
+      self.bgColorImageGH= ...
+        image('parent',self.bgColorAxes, ...
+              'cdata',repmat(uint8(self.catalyticController.getBackgroundColor()),[1,1,3]));
+      set(self.bgColorAxes,'xlim',[0.5 1.5],'ylim',[0.5 1.5]);    
+      %axis off;      
       set(self.fig,'visible','on');
     end
     
@@ -80,14 +84,13 @@ classdef AutoTrackSettingsController < handle
       f = self.catalyticController.getAutoTrackFrame();
       [isfore,dfore,xpred,ypred,thetapred,self.r0,self.r1,self.c0,self.c1,self.im] = ...
         self.catalyticController.backgroundSubtraction(iFlies,f);  %#ok
-      self.nr = self.r1-self.r0+1;
-      self.nc = self.c1-self.c0+1;
+      %self.nr = self.r1-self.r0+1;
+      %self.nc = self.c1-self.c0+1;
       %axes(self.mainAxes);
       %hold off;
-      if ~isempty(self.him) && ishandle(self.him)
-        delete(self.him);
+      if ~isempty(self.roiImageGH) && ishandle(self.roiImageGH)
+        delete(self.roiImageGH);
       end
-      im=self.im;
       foregroundSign=self.catalyticController.getForegroundSign();
       if foregroundSign==1 ,
         backgroundValue=0;
@@ -96,12 +99,16 @@ classdef AutoTrackSettingsController < handle
       else
         backgroundValue=0;
       end
-      im(~isfore)=backgroundValue;
-      self.him = image('parent',self.mainAxes, ...
-                       'xdata',[self.c0 self.c1], ...
-                       'ydata',[self.r0 self.r1], ...                       
-                       'cdata',im);
-      set(self.him,'buttondownfcn',@(hObject,eventdata)self.mouseButtonDownInMainAxes(hObject,eventdata));
+      %imColorized=self.im;
+      %imColorized(~isfore)=backgroundValue;
+      imColorized=colorizeSegmentation(self.im,isfore);
+      %bgcurr=self.catalyticController.getBackgroundImageForCurrentAutoTrack();
+      %bgcurr=bgcurr(self.r0:self.r1,self.c0:self.c1);
+      self.roiImageGH = image('parent',self.mainAxes, ...
+                              'xdata',[self.c0 self.c1], ...
+                              'ydata',[self.r0 self.r1], ...
+                              'cdata',imColorized);
+      set(self.roiImageGH,'buttondownfcn',@(hObject,eventdata)self.mouseButtonDownInMainAxes(hObject,eventdata));
       set(self.mainAxes,'xlim',[self.c0-0.5 self.c1+0.5], ...
                         'ylim',[self.r0-0.5 self.r1+0.5]);
       %axis image;
@@ -117,12 +124,17 @@ classdef AutoTrackSettingsController < handle
 %                               'linestyle','none', ...
 %                               'hittest','off');
       
-      if ~isempty(self.choosepatchpt1) && ~isempty(self.choosepatchpt2)
-        self.hchoose = plot(...
-          [self.choosepatchpt1(1),self.choosepatchpt1(1),...
-          self.choosepatchpt2(1),self.choosepatchpt2(1),self.choosepatchpt1(1)],...
-          [self.choosepatchpt1(2),self.choosepatchpt2(2),...
-          self.choosepatchpt2(2),self.choosepatchpt1(2),self.choosepatchpt1(2)],'g');
+      if ~isempty(self.fillRegionAnchorCorner) && ~isempty(self.fillRegionPointerCorner)
+        if ~isempty(self.fillRegionBoundLine) && ishandle(self.fillRegionBoundLine) ,
+          delete(self.fillRegionBoundLine);
+        end
+        self.fillRegionBoundLine = ...
+          line('parent',self.mainAxes, ...
+               'xdata',[self.fillRegionAnchorCorner(1),self.fillRegionAnchorCorner(1), ...
+                        self.fillRegionPointerCorner(1),self.fillRegionPointerCorner(1),self.fillRegionAnchorCorner(1)], ...
+               'ydata',[self.fillRegionAnchorCorner(2),self.fillRegionPointerCorner(2), ...
+                        self.fillRegionPointerCorner(2),self.fillRegionAnchorCorner(2),self.fillRegionAnchorCorner(2)], ...
+               'color','g');
       end
     end
     
@@ -214,23 +226,28 @@ classdef AutoTrackSettingsController < handle
     function mouseButtonDownInMainAxes(self, hObject, eventdata)  %#ok
       %fprintf('Entered mouseButtonDownInMainAxes()\n');
       pt = get(self.mainAxes,'currentpoint');
-      x = min(max(1,round(pt(1,1))),self.nc);
-      y = min(max(1,round(pt(1,2))),self.nr);
+      [nr,nc]=size(self.im);
+      x = min(max(1,round(pt(1,1))),nc);
+      y = min(max(1,round(pt(1,2))),nr);
       
       if get(self.eyedropperRadiobutton,'Value')
         
         self.catalyticController.setBackgroundColor(self.im(y,x));
-        axes(self.bgcolorax);
-        image(repmat(uint8(self.catalyticController.getBackgroundColor()),[1,1,3]));
-        axis off;
+        %axes(self.bgColorAxes);
+        set(self.bgColorImageGH, ...
+            'cdata',repmat(uint8(self.catalyticController.getBackgroundColor()),[1,1,3]));
+        %axis off;
         
       else
         
-        if ~isempty(self.hchoose) && ishandle(self.hchoose)
-          delete(self.hchoose);
+        if ~isempty(self.fillRegionBoundLine) && ishandle(self.fillRegionBoundLine)
+          delete(self.fillRegionBoundLine);
         end
-        self.choosepatchpt1 = [x,y];
-        self.hchoose = plot([x,x,x,x,x],[y,y,y,y,y],'g');
+        self.fillRegionAnchorCorner = [x,y];
+        self.fillRegionBoundLine = line('parent',self.mainAxes, ...
+                            'xdata',[x,x,x,x,x], ...
+                            'ydata',[y,y,y,y,y], ...
+                            'color','g');
         self.choosepatch = true;
         
       end
@@ -247,20 +264,20 @@ classdef AutoTrackSettingsController < handle
     
     % ---------------------------------------------------------------------
     function fillbuttonTwiddled(self, hObject, eventdata)  %#ok
-      if isempty(self.choosepatchpt1) || isempty(self.choosepatchpt2)
+      if isempty(self.fillRegionAnchorCorner) || isempty(self.fillRegionPointerCorner)
         msgbox('Drag a rectangle to select a patch to fill');
         return;
       end
       
-      r0 = min(self.choosepatchpt1(2),self.choosepatchpt2(2));
-      r1 = max(self.choosepatchpt1(2),self.choosepatchpt2(2));
-      c0 = min(self.choosepatchpt1(1),self.choosepatchpt2(1));
-      c1 = max(self.choosepatchpt1(1),self.choosepatchpt2(1));
-      r0 = max(round(r0+self.r0-1),1);
-      r1 = min(round(r1+self.r0-1),self.catalyticController.getNRows());
-      c0 = max(round(c0+self.c0-1),1);
-      c1 = min(round(c1+self.c0-1),self.catalyticController.getNCols());
-      bgcurr=self.catalyticController.getBackgroundImage();
+      r0 = min(self.fillRegionAnchorCorner(2),self.fillRegionPointerCorner(2));
+      r1 = max(self.fillRegionAnchorCorner(2),self.fillRegionPointerCorner(2));
+      c0 = min(self.fillRegionAnchorCorner(1),self.fillRegionPointerCorner(1));
+      c1 = max(self.fillRegionAnchorCorner(1),self.fillRegionPointerCorner(1));
+      r0 = max(round(r0),1);
+      r1 = min(round(r1),self.catalyticController.getNRows());
+      c0 = max(round(c0),1);
+      c1 = min(round(c1),self.catalyticController.getNCols());
+      bgcurr=self.catalyticController.getBackgroundImageForCurrentAutoTrack();
       bgcurr(r0:r1,c0:c1) = self.catalyticController.getBackgroundColor();
       self.catalyticController.setBackgroundImageForCurrentAutoTrack(bgcurr);
       
@@ -282,16 +299,18 @@ classdef AutoTrackSettingsController < handle
       pt = get(self.mainAxes,'currentpoint');
       x = pt(1,1);
       y = pt(1,2);
-      if x < 1 || x > self.nc || y > self.nr || y < 1
-        return;
-      end
-      x = min(max(1,round(x)),self.nc);
-      y = min(max(1,round(y)),self.nr);
+      %[nr,nc]=size(self.im);
+      %if x < self.c0-0.5 || x > self.c1+0.5 || y < self.r0-0.5 || y > self.r1+0.5
+        %fprintf('returning early!\n');
+      %  return
+      %end
+      x = min(max(self.c0,round(x)),self.c1);
+      y = min(max(self.r0,round(y)),self.r1);
       
-      self.choosepatchpt2 = [x,y];
-      set(self.hchoose,...
-        'xdata',[self.choosepatchpt1(1),self.choosepatchpt1(1),x,x,self.choosepatchpt1(1)],...
-        'ydata',[self.choosepatchpt1(2),y,y,self.choosepatchpt1(2),self.choosepatchpt1(2)]);
+      self.fillRegionPointerCorner = [x,y];
+      set(self.fillRegionBoundLine,...
+          'xdata',[self.fillRegionAnchorCorner(1),self.fillRegionAnchorCorner(1),x,x,self.fillRegionAnchorCorner(1)],...
+          'ydata',[self.fillRegionAnchorCorner(2),y,y,self.fillRegionAnchorCorner(2),self.fillRegionAnchorCorner(2)]);
       
       % guidata(hObject,self);
     end
@@ -429,21 +448,20 @@ classdef AutoTrackSettingsController < handle
         'UserData',[],...
         'Tag','text4');
       
-      self.bgcolorax = axes(...
+      self.bgColorAxes = axes(...
         'Parent',self.fixbgpanel,...
         'Units','characters',...
         'FontUnits','pixels',...
         'Position',[31 5.30769230769231 8.66666666666667 4.23076923076923],...
-        'CameraPosition',[0.5 0.5 9.16025403784439],...
-        'CameraPositionMode',get(0,'defaultaxesCameraPositionMode'),...
-        'Color',get(0,'defaultaxesColor'),...
-        'ColorOrder',get(0,'defaultaxesColorOrder'),...
         'FontSize',12.5,...
-        'LooseInset',[14.56 3.55666666666667 10.64 2.425],...
-        'XColor',get(0,'defaultaxesXColor'),...
-        'YColor',get(0,'defaultaxesYColor'),...
-        'ZColor',get(0,'defaultaxesZColor'),...
-        'Tag','bgcolorax');
+        'clim',[0 255], ...
+        'ydir','reverse', ...
+        'Box','on', ...
+        'Layer','top', ...
+        'xtick',[], ...
+        'ytick',[], ...
+        'Tag','bgColorAxes');
+%         'DataAspectRatio',[1 1 1], ...
             
       self.eyedropperRadiobutton = uicontrol(...
         'Parent',self.fixbgpanel,...

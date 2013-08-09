@@ -10,7 +10,7 @@ properties
   params = [];
   originalTrackFileName
   savename = [];
-  readframe = [];  % a function handle, used to read a frame of the video
+  readframe = [];  % a function handle, used to read a frame of the video given frame index
   nframes = [];
   fid = [];
   timestamps=[];
@@ -4645,7 +4645,7 @@ methods
   
   
   % -----------------------------------------------------------------------
-  function [isForeground, ...
+  function [isForegroundBounded, ...
             diffFromBackgroundBounded, ...
             xPredicted,yPredicted,thetaPredicted, ...
             r0,r1,c0,c1, ...
@@ -4712,18 +4712,12 @@ methods
     else
       diffFromBackgroundBoundedRectified = abs(diffFromBackgroundBounded);
     end
-    isForeground = (diffFromBackgroundBoundedRectified>=self.bgthresh);
+    isForegroundBounded = (diffFromBackgroundBoundedRectified>=self.bgthresh);
     se = strel('disk',1);
-    isForeground = imclose(isForeground,se);
-    isForeground = imopen(isForeground,se);
+    isForegroundBounded = imclose(isForegroundBounded,se);
+    isForegroundBounded = imopen(isForegroundBounded,se);
   end  % method
     
-  
-  % -----------------------------------------------------------------------
-  function backgroundImage = getBackgroundImage(self)
-    backgroundImage=self.backgroundImage;
-  end
-
   
   % -----------------------------------------------------------------------
   function bgthresh = getBackgroundThreshold(self)
@@ -4772,6 +4766,12 @@ methods
     self.backgroundImageForCurrentAutoTrack=self.backgroundImageForCurrentAutoTrack;
   end
   
+  
+  % -----------------------------------------------------------------------
+  function value = getBackgroundImageForCurrentAutoTrack(self)
+    value=self.backgroundImageForCurrentAutoTrack;
+  end
+
   
   % -----------------------------------------------------------------------
   function setBackgroundImageForCurrentAutoTrack(self,newValue)
