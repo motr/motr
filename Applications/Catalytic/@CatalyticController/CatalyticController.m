@@ -30,7 +30,7 @@ properties
   autoZoomMode
   undolist
   needssaving
-  bgthresh
+  backgroundThreshold
   % bgcolor
   doneseqs
   backgroundImage
@@ -232,7 +232,7 @@ methods
     self.undolist = {};
     self.needssaving = 0;
     
-    %self.bgthresh = 10;
+    %self.backgroundThreshold = 10;
     % self.bgcolor = nan;
     
     % initialize data structures
@@ -3154,7 +3154,7 @@ methods
 %                  'n_bg_std_thresh_low');
 %       self.ang_dist_wt=ang_dist_wt;
 %       self.maxjump=max_jump;
-%       self.bgthresh=fif(isempty(n_bg_std_thresh_low),100,n_bg_std_thresh_low);
+%       self.backgroundThreshold=fif(isempty(n_bg_std_thresh_low),100,n_bg_std_thresh_low);
 %       if bg_type == 0,
 %         self.foregroundSign = 1;
 %       elseif bg_type == 1,
@@ -3169,7 +3169,7 @@ methods
 %       end
       self.ang_dist_wt=ctc.ang_dist_wt;
       self.maxjump=ctc.maxjump;
-      self.bgthresh=ctc.bgthresh;
+      self.backgroundThreshold=ctc.bgthresh;
       self.foregroundSign=ctc.foregroundSign;
       self.backgroundImage=ctc.backgroundImage;
       self.center_dampen=ctc.center_dampen;
@@ -3428,7 +3428,7 @@ methods
     %annname = self.annname;  %#ok
     ang_dist_wt=self.ang_dist_wt;  %#ok
     maxjump=self.maxjump;  %#ok
-    bgthresh=self.bgthresh;  %#ok
+    bgthresh=self.backgroundThreshold;  %#ok
     foregroundSign=self.foregroundSign;  %#ok
     backgroundImage=self.backgroundImage;  %#ok
     center_dampen=self.center_dampen;  %#ok
@@ -4489,15 +4489,22 @@ methods
       % get foreground/background classification around flies
       %[isfore,dfore,xpred,ypred,thetapred,r0,r1,c0,c1,~] = self.backgroundSubtraction(iFlies,iFrame);  %#ok
       currentFrame=self.readframe(iFrame);
-      [isfore,dfore,~,~,~,r0,r1,c0,c1,~] = ...
-        foregroundSegmentation(self.trx, ...
-                               iFlies, ...
-                               iFrame, ...
-                               currentFrame, ...
-                               self.maxjump, ...
-                               self.currentAutoTrackBackgroundImage, ...
-                               self.foregroundSign, ...
-                               self.backgroundThreshold);
+      [nRows,nCols]=size(currentFrame);
+%       [isfore,dfore,r0,r1,c0,c1] = ...
+%         foregroundSegmentation(self.trx, ...
+%                                iFlies, ...
+%                                iFrame, ...
+%                                currentFrame, ...
+%                                self.maxjump, ...
+%                                self.currentAutoTrackBackgroundImage, ...
+%                                self.foregroundSign, ...
+%                                self.backgroundThreshold);                             
+      [r0,r1,c0,c1] = ...
+        computeTrackingROI(self.trx,iFlies,iFrame,nRows,nCols,self.maxjump);
+      currentFrameROI = currentFrame(r0:r1,c0:c1);
+      bgBounded=self.backgroundImageForCurrentAutoTrack(r0:r1,c0:c1);
+      [isfore,dfore]= ...
+        foregroundSegmentation(currentFrameROI,bgBounded,self.foregroundSign,self.backgroundThreshold);
            
       [cc,ncc] = bwlabel(isfore);
       isdeleted = [];
@@ -4740,7 +4747,7 @@ methods
 %     else
 %       diffFromBackgroundBoundedRectified = abs(diffFromBackgroundBounded);
 %     end
-%     isForegroundBounded = (diffFromBackgroundBoundedRectified>=self.bgthresh);
+%     isForegroundBounded = (diffFromBackgroundBoundedRectified>=self.backgroundThreshold);
 %     se = strel('disk',1);
 %     isForegroundBounded = imclose(isForegroundBounded,se);
 %     isForegroundBounded = imopen(isForegroundBounded,se);
@@ -4748,26 +4755,26 @@ methods
     
   
   % -----------------------------------------------------------------------
-  function bgthresh = getBackgroundThreshold(self)
-    bgthresh=self.bgthresh;
+  function backgroundThreshold = getBackgroundThreshold(self)
+    backgroundThreshold=self.backgroundThreshold;
   end
 
   
   % -----------------------------------------------------------------------
   function setBackgroundThreshold(self,newValue)
-    self.bgthresh=newValue;
+    self.backgroundThreshold=newValue;
   end
 
   
 %   % -----------------------------------------------------------------------
 %   function incrementBackgroundThreshold(self,change)
-%     self.bgthresh=self.bgthresh+change;
+%     self.backgroundThreshold=self.backgroundThreshold+change;
 %   end
 
   
   % -----------------------------------------------------------------------
-  function lighterthanbg = getForegroundSign(self)
-    lighterthanbg=self.foregroundSign;
+  function value = getForegroundSign(self)
+    value=self.foregroundSign;
   end
 
   

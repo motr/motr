@@ -25,7 +25,7 @@ classdef AutoTrackSettingsController < handle
     
     choosepatch  % true iff the user is currently in the process of drawing a rectangle in mainAxes
     % buttondownfcn
-    currentFrameROI  % the image, limited to the ROI, for the current frame
+    %currentFrameROI  % the image, limited to the ROI, for the current frame
 %     nr  % number of rows in the ROI
 %     nc  % number of cols in the ROI
     r0  % the lowest-index row of the ROI in the full frame
@@ -47,6 +47,8 @@ classdef AutoTrackSettingsController < handle
     iFrame
     trx
     currentFrame
+    nRows  % number of rows in the full frame (not the tracking ROI)
+    nCols  % number of cols in the full frame (not the tracking ROI)
   end  % properties
   
   methods
@@ -64,6 +66,8 @@ classdef AutoTrackSettingsController < handle
       self.iFrame = self.catalyticController.getAutoTrackFrame();
       self.trx=self.catalyticController.getTrx();
       self.currentFrame=self.catalyticController.getCurrentFrame();
+      self.nRows=self.catalyticController.getNRows();
+      self.nCols=self.catalyticController.getNCols();
       
       % set defaults
       set(self.eyedropperRadiobutton,'value',0);
@@ -82,7 +86,8 @@ classdef AutoTrackSettingsController < handle
       self.choosepatch = false;
       % self.buttondownfcn = get(self.mainAxes,'buttondownfcn');
       
-      self.syncROIAndUpdateSegmentationView();
+      self.syncROIBounds();
+      self.updateSegmentationView();
       
       %if isempty(self.backgroundColor) || isnan(self.backgroundColor) ,
       %  self.catalyticController.setBackgroundColor(median(self.currentFrameROI(:)));
@@ -97,43 +102,30 @@ classdef AutoTrackSettingsController < handle
     end
     
     
-    % ---------------------------------------------------------------------
-    function syncROIAndUpdateSegmentationView(self)
-%       [isfore,dfore,xpred,ypred,thetapred,self.r0,self.r1,self.c0,self.c1,self.currentFrameROI] = ...
-%         self.catalyticController.backgroundSubtraction(self.iFlies,self.iFrame);  %#ok
-      [isfore, ...
-       ~, ...
-       ~,~,~, ...
-       self.r0,self.r1,self.c0,self.c1, ...
-       self.currentFrameROI] = ...
-        foregroundSegmentation(self.trx, ...
-                               self.iFlies, ...
-                               self.iFrame, ...
-                               self.currentFrame, ...
-                               self.trackingROIHalfWidth, ...
-                               self.backgroundImage, ...
+%     % ---------------------------------------------------------------------
+%     function syncROIAndUpdateSegmentationView(self)
+%       % [self.r0,self.r1,self.c0,self.c1] = ...
+%       %   computeTrackingROI(self.trx,self.iFlies,self.iFrame,self.nRows,self.nCols,self.trackingROIHalfWidth);
+%       % self.currentFrameROI = double(self.currentFrame(self.r0:self.r1,self.c0:self.c1));
+%       self.syncROI();
+%       self.updateSegmentationView();
+%     end
+%     
+%       
+    % ---------------------------------------------------------------------      
+    function updateSegmentationView(self)
+      currentFrameROI=self.currentFrame(self.r0:self.r1,self.c0:self.c1); 
+      backgroundImageROI=self.backgroundImage(self.r0:self.r1,self.c0:self.c1);
+      isfore= ...
+        foregroundSegmentation(currentFrameROI, ...
+                               backgroundImageROI, ...
                                self.foregroundSign, ...
                                self.backgroundThreshold);
-      %self.nr = self.r1-self.r0+1;
-      %self.nc = self.c1-self.c0+1;
-      %axes(self.mainAxes);
-      %hold off;
+
       if ~isempty(self.roiImageGH) && ishandle(self.roiImageGH)
         delete(self.roiImageGH);
       end
-%       foregroundSign=self.catalyticController.getForegroundSign();
-%       if foregroundSign==1 ,
-%         backgroundValue=0;
-%       elseif foregroundSign==-1 ,
-%         backgroundValue=255;
-%       else
-%         backgroundValue=0;
-%       end
-      %imColorized=self.currentFrameROI;
-      %imColorized(~isfore)=backgroundValue;
-      imColorized=colorizeSegmentation(self.currentFrameROI,isfore);
-      %bgcurr=self.catalyticController.getBackgroundImageForCurrentAutoTrack();
-      %bgcurr=bgcurr(self.r0:self.r1,self.c0:self.c1);
+      imColorized=colorizeSegmentation(currentFrameROI,isfore);
       self.roiImageGH = image('parent',self.mainAxes, ...
                               'hittest','on',...
                               'xdata',[self.c0 self.c1], ...
@@ -142,9 +134,6 @@ classdef AutoTrackSettingsController < handle
       set(self.roiImageGH,'buttondownfcn',@(hObject,eventdata)self.mouseButtonDownInMainAxes(hObject,eventdata));
       set(self.mainAxes,'xlim',[self.c0-0.5 self.c1+0.5], ...
                         'ylim',[self.r0-0.5 self.r1+0.5]);
-      %axis image;
-      %colormap gray;
-      %hold on;
 %       bw = bwperim(isfore);
 %       [r,c] = find(bw);
 %       self.perimeterLine=line('parent',self.mainAxes, ...
@@ -154,20 +143,7 @@ classdef AutoTrackSettingsController < handle
 %                               'marker','.', ...
 %                               'linestyle','none', ...
 %                               'hittest','off');
-      
-      if ~isempty(self.fillRegionAnchorCorner) && ~isempty(self.fillRegionPointerCorner)
-        if ~isempty(self.fillRegionBoundLine) && ishandle(self.fillRegionBoundLine) ,
-          delete(self.fillRegionBoundLine);
-        end
-        self.fillRegionBoundLine = ...
-          line('parent',self.mainAxes, ...
-               'xdata',[self.fillRegionAnchorCorner(1),self.fillRegionAnchorCorner(1), ...
-                        self.fillRegionPointerCorner(1),self.fillRegionPointerCorner(1),self.fillRegionAnchorCorner(1)], ...
-               'ydata',[self.fillRegionAnchorCorner(2),self.fillRegionPointerCorner(2), ...
-                        self.fillRegionPointerCorner(2),self.fillRegionAnchorCorner(2),self.fillRegionAnchorCorner(2)], ...
-               'color','g');
-      end
-    end
+    end  % method
     
     
     % ---------------------------------------------------------------------
@@ -178,8 +154,9 @@ classdef AutoTrackSettingsController < handle
       
       %self.catalyticController.incrementBackgroundThreshold(1);
       self.backgroundThreshold=self.backgroundThreshold+1;
+      self.syncROIBounds();
       set(self.thresholdText,'string',sprintf('Threshold: %.1f',self.backgroundThreshold));
-      self.syncROIAndUpdateSegmentationView();
+      self.updateSegmentationView();
       % guidata(hObject,self);
     end
     
@@ -192,9 +169,10 @@ classdef AutoTrackSettingsController < handle
       
       % self.catalyticController.incrementBackgroundThreshold(-1);
       self.backgroundThreshold=self.backgroundThreshold-1;
+      self.syncROIBounds();
       %self.catalyticController.bgthresh = self.catalyticController.bgthresh - .1;
       set(self.thresholdText,'string',sprintf('Threshold: %.1f',self.backgroundThreshold));
-      self.syncROIAndUpdateSegmentationView();
+      self.updateSegmentationView();
       % guidata(hObject,self);
     end
         
@@ -216,7 +194,8 @@ classdef AutoTrackSettingsController < handle
       else
         self.foregroundSign=0;
       end
-      self.syncROIAndUpdateSegmentationView();
+      self.syncROIBounds();
+      self.updateSegmentationView();
     end
    
     
@@ -250,12 +229,13 @@ classdef AutoTrackSettingsController < handle
     function mouseButtonDownInMainAxes(self, hObject, eventdata)  %#ok
       %fprintf('Entered mouseButtonDownInMainAxes()\n');
       pt = get(self.mainAxes,'currentpoint');
-      [nr,nc]=size(self.currentFrame);
-      x = min(max(1,round(pt(1,1))),nc);
-      y = min(max(1,round(pt(1,2))),nr);
+      %[nr,nc]=size(self.currentFrame);
+      r=pt(1,:);  % the <x,y> vector
+      x = min(max(1,round(r(1))),self.nCols);
+      y = min(max(1,round(r(2))),self.nRows);
       
       if get(self.eyedropperRadiobutton,'Value')        
-        self.backgroundColor=self.currentFrameROI(y,x);
+        self.backgroundColor=self.currentFrame(y,x);
         set(self.bgColorImageGH, ...
             'cdata',repmat(uint8(self.backgroundColor),[1,1,3]));
       else
@@ -268,6 +248,7 @@ classdef AutoTrackSettingsController < handle
           line('parent',self.mainAxes, ...
                'xdata',[x,x,x,x,x], ...
                'ydata',[y,y,y,y,y], ...
+               'zdata',[1 1 1 1 1], ...
                'color','g');
         self.choosepatch = true;
       end
@@ -299,7 +280,8 @@ classdef AutoTrackSettingsController < handle
       bgcurr(r0:r1,c0:c1) = self.backgroundColor;
       self.backgroundImage=bgcurr;
       
-      self.syncROIAndUpdateSegmentationView();
+      self.syncROIBounds();
+      self.updateSegmentationView();
       % guidata(hObject,self);
     end
     
@@ -354,7 +336,8 @@ classdef AutoTrackSettingsController < handle
       %self.catalyticController.incrementMaximumJump(+1);
       self.trackingROIHalfWidth=self.trackingROIHalfWidth+1;
       set(self.trackingROIHalfWidthText,'string',sprintf('ROI Half-Width: %.1f px',self.trackingROIHalfWidth));
-      self.syncROIAndUpdateSegmentationView();
+      self.syncROIBounds();
+      self.updateSegmentationView();
     end
     
     
@@ -364,13 +347,14 @@ classdef AutoTrackSettingsController < handle
       %self.catalyticController.incrementMaximumJump(-1);
       self.trackingROIHalfWidth=self.trackingROIHalfWidth-1;
       set(self.trackingROIHalfWidthText,'string',sprintf('ROI Half-Width: %.1f px',self.trackingROIHalfWidth));
-      self.syncROIAndUpdateSegmentationView();
+      self.syncROIBounds();
+      self.updateSegmentationView();
     end
     
     
     
     % ---------------------------------------------------------------------
-    function closeRequested(self)
+    function closeRequested(self)  %#ok
       % do nothing: user must click done or cancel
       %delete(self.fig);
     end
@@ -571,7 +555,7 @@ classdef AutoTrackSettingsController < handle
       fixbgpanelPosition=get(self.fixbgpanel,'position');
       fixbgpanelXOffset=fixbgpanelPosition(1);
       fixbgpanelWidth=fixbgpanelPosition(3);
-      fixbgpanelCenterX=fixbgpanelXOffset+fixbgpanelWidth/2;
+      %fixbgpanelCenterX=fixbgpanelXOffset+fixbgpanelWidth/2;
       doneCancelInterButtonWidth=4;  % chars
       doneCancelButtonWidth=15;
       doneCancelButtonHeight=2;
@@ -602,8 +586,19 @@ classdef AutoTrackSettingsController < handle
     end  % method
     
   end  % methods
+    
+  % -----------------------------------------------------------------------
+  methods (Access=private)
+    % --------------------------------------------------------------------
+    function syncROIBounds(self)
+      [self.r0,self.r1,self.c0,self.c1] = ...
+        computeTrackingROI(self.trx, ...
+                           self.iFlies, ...
+                           self.iFrame, ...
+                           self.nRows, ...
+                           self.nCols, ...
+                           self.trackingROIHalfWidth);
+    end   
+  end  % private methods
   
 end  % classdef
-
-
-
