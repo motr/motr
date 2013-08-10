@@ -6,25 +6,26 @@ classdef AutoTrackSettingsController < handle
     % GUI handles
     fig  % the settings figure
     mainAxes  % the main axes, which shows the current frame ROI and foreground/background segmentation
-    lighterthanbgmenu
-    donebutton
-    debugbutton
+    foregroundSignPopup
     fixbgpanel
     text4
     bgColorAxes
     bgColorImageGH
     eyedropperRadiobutton
     fillbutton
-    radiusText
-    radiusPlusButton
-    radiusMinusButton
+    trackingROIHalfWidthText
+    trackingROIHalfWidthPlusButton
+    trackingROIHalfWidthMinusButton
     thresholdText
     thresholdPlusButton
     thresholdMinusButton
+    debugbutton
+    doneButton
+    cancelButton
     
     choosepatch  % true iff the user is currently in the process of drawing a rectangle in mainAxes
     % buttondownfcn
-    im  % the image, limited to the ROI, for the current frame
+    currentFrameROI  % the image, limited to the ROI, for the current frame
 %     nr  % number of rows in the ROI
 %     nc  % number of cols in the ROI
     r0  % the lowest-index row of the ROI in the full frame
@@ -32,10 +33,20 @@ classdef AutoTrackSettingsController < handle
     c0  % the lowest-index col of the ROI in the full frame
     c1  % the highest-index col of the ROI in the full frame
     roiImageGH  % the image HG object, showing the ROI, with background blacked out (or whited out, depending)
-    perimeterLine  % the line showing the boundary between foreground and background
+    %perimeterLine  % the line showing the boundary between foreground and background
     fillRegionBoundLine  % the line showing the current fill region
     fillRegionAnchorCorner  % the corner of the fill region that is fixed during the drag
     fillRegionPointerCorner  % the corner of the fill region under the pointer during the drag
+    
+    backgroundImage
+    backgroundThreshold
+    foregroundSign
+    trackingROIHalfWidth
+    backgroundColor
+    iFlies
+    iFrame
+    trx
+    currentFrame
   end  % properties
   
   methods
@@ -43,35 +54,43 @@ classdef AutoTrackSettingsController < handle
     function self=AutoTrackSettingsController(catalyticController)
       self.layout();
       self.catalyticController = catalyticController;
+      self.backgroundImage=self.catalyticController.getBackgroundImage();
+      self.backgroundThreshold=self.catalyticController.getBackgroundThreshold();
+      self.foregroundSign=self.catalyticController.getForegroundSign();
+      self.trackingROIHalfWidth=self.catalyticController.getMaximumJump();
+      self.backgroundColor=128;  
+        % would be nice to change this back to the median of the current frame ROI
+      self.iFlies = self.catalyticController.getAutoTrackFly();
+      self.iFrame = self.catalyticController.getAutoTrackFrame();
+      self.trx=self.catalyticController.getTrx();
+      self.currentFrame=self.catalyticController.getCurrentFrame();
       
       % set defaults
       set(self.eyedropperRadiobutton,'value',0);
       %axes(self.bgColorAxes);
-      self.catalyticController.initializeBackgroundImageForCurrentAutoTrack();
-      set(self.thresholdText,'string',sprintf('Threshold: %.1f',self.catalyticController.getBackgroundThreshold()));
-      lighterthanbg=self.catalyticController.getForegroundSign();
-      if lighterthanbg == 1,
-        set(self.lighterthanbgmenu,'value',1);
-      elseif lighterthanbg == -1,
-        set(self.lighterthanbgmenu,'value',2);
+      %self.catalyticController.initializeBackgroundImageForCurrentAutoTrack();
+      set(self.thresholdText,'string',sprintf('Threshold: %.1f',self.backgroundThreshold()));
+      if self.foregroundSign == 1,
+        set(self.foregroundSignPopup,'value',1);
+      elseif self.foregroundSign == -1,
+        set(self.foregroundSignPopup,'value',2);
       else
-        set(self.lighterthanbgmenu,'value',3);
+        set(self.foregroundSignPopup,'value',3);
       end
-      set(self.radiusText,'string',sprintf('Track Radius: %.1f px',self.catalyticController.getMaximumJump()));
+      set(self.trackingROIHalfWidthText,'string',sprintf('ROI Half-Width: %.1f px',self.trackingROIHalfWidth));
       
       self.choosepatch = false;
       % self.buttondownfcn = get(self.mainAxes,'buttondownfcn');
       
-      self.showCurrentFrame();
+      self.syncROIAndUpdateSegmentationView();
       
-      bgColor=self.catalyticController.getBackgroundColor();
-      if isempty(bgColor) || isnan(bgColor) ,
-        self.catalyticController.setBackgroundColor(median(self.im(:)));
-      end
+      %if isempty(self.backgroundColor) || isnan(self.backgroundColor) ,
+      %  self.catalyticController.setBackgroundColor(median(self.currentFrameROI(:)));
+      %end
       %axes(self.bgColorAxes);
       self.bgColorImageGH= ...
         image('parent',self.bgColorAxes, ...
-              'cdata',repmat(uint8(self.catalyticController.getBackgroundColor()),[1,1,3]));
+              'cdata',repmat(uint8(self.backgroundColor),[1,1,3]));
       set(self.bgColorAxes,'xlim',[0.5 1.5],'ylim',[0.5 1.5]);    
       %axis off;      
       set(self.fig,'visible','on');
@@ -79,11 +98,22 @@ classdef AutoTrackSettingsController < handle
     
     
     % ---------------------------------------------------------------------
-    function showCurrentFrame(self)
-      iFlies = self.catalyticController.getAutoTrackFly();
-      f = self.catalyticController.getAutoTrackFrame();
-      [isfore,dfore,xpred,ypred,thetapred,self.r0,self.r1,self.c0,self.c1,self.im] = ...
-        self.catalyticController.backgroundSubtraction(iFlies,f);  %#ok
+    function syncROIAndUpdateSegmentationView(self)
+%       [isfore,dfore,xpred,ypred,thetapred,self.r0,self.r1,self.c0,self.c1,self.currentFrameROI] = ...
+%         self.catalyticController.backgroundSubtraction(self.iFlies,self.iFrame);  %#ok
+      [isfore, ...
+       ~, ...
+       ~,~,~, ...
+       self.r0,self.r1,self.c0,self.c1, ...
+       self.currentFrameROI] = ...
+        foregroundSegmentation(self.trx, ...
+                               self.iFlies, ...
+                               self.iFrame, ...
+                               self.currentFrame, ...
+                               self.trackingROIHalfWidth, ...
+                               self.backgroundImage, ...
+                               self.foregroundSign, ...
+                               self.backgroundThreshold);
       %self.nr = self.r1-self.r0+1;
       %self.nc = self.c1-self.c0+1;
       %axes(self.mainAxes);
@@ -99,12 +129,13 @@ classdef AutoTrackSettingsController < handle
 %       else
 %         backgroundValue=0;
 %       end
-      %imColorized=self.im;
+      %imColorized=self.currentFrameROI;
       %imColorized(~isfore)=backgroundValue;
-      imColorized=colorizeSegmentation(self.im,isfore);
+      imColorized=colorizeSegmentation(self.currentFrameROI,isfore);
       %bgcurr=self.catalyticController.getBackgroundImageForCurrentAutoTrack();
       %bgcurr=bgcurr(self.r0:self.r1,self.c0:self.c1);
       self.roiImageGH = image('parent',self.mainAxes, ...
+                              'hittest','on',...
                               'xdata',[self.c0 self.c1], ...
                               'ydata',[self.r0 self.r1], ...
                               'cdata',imColorized);
@@ -145,9 +176,10 @@ classdef AutoTrackSettingsController < handle
       % eventdata  reserved - to be defined in a future version of MATLAB
       % self    structure with self and user data (see GUIDATA)
       
-      self.catalyticController.incrementBackgroundThreshold(1);
-      set(self.thresholdText,'string',sprintf('Threshold: %.1f',self.catalyticController.getBackgroundThreshold()));
-      self.showCurrentFrame();
+      %self.catalyticController.incrementBackgroundThreshold(1);
+      self.backgroundThreshold=self.backgroundThreshold+1;
+      set(self.thresholdText,'string',sprintf('Threshold: %.1f',self.backgroundThreshold));
+      self.syncROIAndUpdateSegmentationView();
       % guidata(hObject,self);
     end
     
@@ -158,59 +190,51 @@ classdef AutoTrackSettingsController < handle
       % eventdata  reserved - to be defined in a future version of MATLAB
       % self    structure with self and user data (see GUIDATA)
       
-      self.catalyticController.incrementBackgroundThreshold(-1);
+      % self.catalyticController.incrementBackgroundThreshold(-1);
+      self.backgroundThreshold=self.backgroundThreshold-1;
       %self.catalyticController.bgthresh = self.catalyticController.bgthresh - .1;
-      set(self.thresholdText,'string',sprintf('Threshold: %.1f',self.catalyticController.getBackgroundThreshold()));
-      self.showCurrentFrame();
+      set(self.thresholdText,'string',sprintf('Threshold: %.1f',self.backgroundThreshold));
+      self.syncROIAndUpdateSegmentationView();
       % guidata(hObject,self);
     end
-    
-    
+        
     
     % ---------------------------------------------------------------------
-    function lighterthanbgmenuTwiddled(self, hObject, eventdata)  %#ok
-      % hObject    handle to lighterthanbgmenu (see GCBO)
+    function foregroundSignPopupTwiddled(self, source, event)  %#ok
+      % hObject    handle to foregroundSignPopup (see GCBO)
       % eventdata  reserved - to be defined in a future version of MATLAB
       % self    structure with self and user data (see GUIDATA)
       
-      % Hints: contents = get(hObject,'String') returns lighterthanbgmenu contents as cell array
-      %        contents{get(hObject,'Value')} returns selected item from lighterthanbgmenu
+      % Hints: contents = get(hObject,'String') returns foregroundSignPopup contents as cell array
+      %        contents{get(hObject,'Value')} returns selected item from foregroundSignPopup
       
-      v = get(hObject,'value');
-      lighterthanbg=self.catalyticController.getForegroundSign();
-      if v == 1
-        
-        if lighterthanbg == 1
-          return;
-        end
-        self.catalyticController.setForegroundSign(1);
-        self.showCurrentFrame();
-        
-      elseif v == 2
-        
-        if lighterthanbg == -1
-          return;
-        end
-        self.catalyticController.setForegroundSign(-1);
-        self.showCurrentFrame();
-        
+      iSelection = get(self.foregroundSignPopup,'value');
+      if iSelection == 1
+        self.foregroundSign=1;
+      elseif iSelection == 2
+        self.foregroundSign=-1;
       else
-        
-        if lighterthanbg == 0
-          return;
-        end
-        self.catalyticController.setForegroundSign(0);
-        self.showCurrentFrame();
-        
+        self.foregroundSign=0;
       end
-      % guidata(hObject,self);
+      self.syncROIAndUpdateSegmentationView();
+    end
+   
+    
+    
+    % ---------------------------------------------------------------------
+    function doneButtonTwiddled(self, hObject, eventdata)  %#ok
+      self.catalyticController.setBackgroundImageForCurrentAutoTrack(self.backgroundImage);
+      self.catalyticController.setBackgroundThreshold(self.backgroundThreshold);
+      self.catalyticController.setMaximumJump(self.trackingROIHalfWidth);      
+      self.catalyticController.setForegroundSign(self.foregroundSign);      
+      delete(self.fig);
     end
     
     
     
     % ---------------------------------------------------------------------
-    function donebuttonTwiddled(self, hObject, eventdata)  %#ok
-      self.closeRequested();
+    function cancelButtonTwiddled(self, hObject, eventdata)  %#ok
+      delete(self.fig);
     end
     
     
@@ -226,33 +250,27 @@ classdef AutoTrackSettingsController < handle
     function mouseButtonDownInMainAxes(self, hObject, eventdata)  %#ok
       %fprintf('Entered mouseButtonDownInMainAxes()\n');
       pt = get(self.mainAxes,'currentpoint');
-      [nr,nc]=size(self.im);
+      [nr,nc]=size(self.currentFrame);
       x = min(max(1,round(pt(1,1))),nc);
       y = min(max(1,round(pt(1,2))),nr);
       
-      if get(self.eyedropperRadiobutton,'Value')
-        
-        self.catalyticController.setBackgroundColor(self.im(y,x));
-        %axes(self.bgColorAxes);
+      if get(self.eyedropperRadiobutton,'Value')        
+        self.backgroundColor=self.currentFrameROI(y,x);
         set(self.bgColorImageGH, ...
-            'cdata',repmat(uint8(self.catalyticController.getBackgroundColor()),[1,1,3]));
-        %axis off;
-        
+            'cdata',repmat(uint8(self.backgroundColor),[1,1,3]));
       else
-        
         if ~isempty(self.fillRegionBoundLine) && ishandle(self.fillRegionBoundLine)
           delete(self.fillRegionBoundLine);
         end
         self.fillRegionAnchorCorner = [x,y];
-        self.fillRegionBoundLine = line('parent',self.mainAxes, ...
-                            'xdata',[x,x,x,x,x], ...
-                            'ydata',[y,y,y,y,y], ...
-                            'color','g');
+        self.fillRegionPointerCorner=self.fillRegionAnchorCorner;
+        self.fillRegionBoundLine = ...
+          line('parent',self.mainAxes, ...
+               'xdata',[x,x,x,x,x], ...
+               'ydata',[y,y,y,y,y], ...
+               'color','g');
         self.choosepatch = true;
-        
       end
-      
-      % guidata(hObject,self);
     end
     
     
@@ -277,11 +295,11 @@ classdef AutoTrackSettingsController < handle
       r1 = min(round(r1),self.catalyticController.getNRows());
       c0 = max(round(c0),1);
       c1 = min(round(c1),self.catalyticController.getNCols());
-      bgcurr=self.catalyticController.getBackgroundImageForCurrentAutoTrack();
-      bgcurr(r0:r1,c0:c1) = self.catalyticController.getBackgroundColor();
-      self.catalyticController.setBackgroundImageForCurrentAutoTrack(bgcurr);
+      bgcurr=self.backgroundImage;
+      bgcurr(r0:r1,c0:c1) = self.backgroundColor;
+      self.backgroundImage=bgcurr;
       
-      self.showCurrentFrame();
+      self.syncROIAndUpdateSegmentationView();
       % guidata(hObject,self);
     end
     
@@ -299,7 +317,7 @@ classdef AutoTrackSettingsController < handle
       pt = get(self.mainAxes,'currentpoint');
       x = pt(1,1);
       y = pt(1,2);
-      %[nr,nc]=size(self.im);
+      %[nr,nc]=size(self.currentFrameROI);
       %if x < self.c0-0.5 || x > self.c1+0.5 || y < self.r0-0.5 || y > self.r1+0.5
         %fprintf('returning early!\n');
       %  return
@@ -319,31 +337,42 @@ classdef AutoTrackSettingsController < handle
     % ---------------------------------------------------------------------
     function mouseButtonReleased(self,hObject,eventdata)  %#ok
       self.choosepatch = false;
+      % If the rectangle is of zero area, delete it
+      if all(self.fillRegionAnchorCorner==self.fillRegionPointerCorner)
+        delete(self.fillRegionBoundLine);
+        self.fillRegionBoundLine=[];
+        self.fillRegionAnchorCorner=[];
+        self.fillRegionPointerCorner=[];
+      end
+      set(self.fillbutton,'enable',onIff(~isempty(self.fillRegionAnchorCorner)));
     end
     
     
     
     % ---------------------------------------------------------------------
-    function radiusPlusButtonTwiddled(self, hObject, eventdata)  %#ok
-      self.catalyticController.incrementMaximumJump(+1);
-      set(self.radiusText,'string',sprintf('Track Radius: %.1f px',self.catalyticController.getMaximumJump()));
-      self.showCurrentFrame();
+    function trackingROIHalfWidthPlusButtonTwiddled(self, hObject, eventdata)  %#ok
+      %self.catalyticController.incrementMaximumJump(+1);
+      self.trackingROIHalfWidth=self.trackingROIHalfWidth+1;
+      set(self.trackingROIHalfWidthText,'string',sprintf('ROI Half-Width: %.1f px',self.trackingROIHalfWidth));
+      self.syncROIAndUpdateSegmentationView();
     end
     
     
     
     % ---------------------------------------------------------------------
-    function radiusMinusButtonTwiddled(self, hObject, eventdata)  %#ok
-      self.catalyticController.incrementMaximumJump(-1);
-      set(self.radiusText,'string',sprintf('Track Radius: %.1f px',self.catalyticController.getMaximumJump()));
-      self.showCurrentFrame();
+    function trackingROIHalfWidthMinusButtonTwiddled(self, hObject, eventdata)  %#ok
+      %self.catalyticController.incrementMaximumJump(-1);
+      self.trackingROIHalfWidth=self.trackingROIHalfWidth-1;
+      set(self.trackingROIHalfWidthText,'string',sprintf('ROI Half-Width: %.1f px',self.trackingROIHalfWidth));
+      self.syncROIAndUpdateSegmentationView();
     end
     
     
     
     % ---------------------------------------------------------------------
     function closeRequested(self)
-      delete(self.fig);
+      % do nothing: user must click done or cancel
+      %delete(self.fig);
     end
     
     
@@ -358,7 +387,7 @@ classdef AutoTrackSettingsController < handle
         'IntegerHandle','off',...
         'InvertHardcopy',get(0,'defaultfigureInvertHardcopy'),...
         'MenuBar','none',...
-        'Name','Auto-track Settings',...
+        'Name','Auto-track Settings...',...
         'NumberTitle','off',...
         'PaperPosition',get(0,'defaultfigurePaperPosition'),...
         'Position',[103.666666666667 30.8333333333333 111.5 30.75],...
@@ -381,6 +410,7 @@ classdef AutoTrackSettingsController < handle
         'LooseInset',[14.56 3.55666666666667 10.64 2.425],...
         'ButtonDownFcn',@(hObject,eventdata)@(hObject,eventdata)self.mouseButtonDownInMainAxes(hObject,eventdata),...
         'clim',[0 255], ...
+        'hittest','on',...
         'ydir','reverse', ...
         'dataaspectratio',[1 1 1], ...
         'Tag','mainAxes');
@@ -392,37 +422,17 @@ classdef AutoTrackSettingsController < handle
 %         'Color',get(0,'defaultaxesColor'),...
 %         'ColorOrder',get(0,'defaultaxesColorOrder'),...
       
-      self.lighterthanbgmenu = uicontrol(...
+      self.foregroundSignPopup = uicontrol(...
         'Parent',self.fig,...
         'Units','characters',...
         'FontUnits','pixels',...
-        'Callback',@(hObject,eventdata)self.lighterthanbgmenuTwiddled(hObject,eventdata),...
+        'Callback',@(hObject,eventdata)self.foregroundSignPopupTwiddled(hObject,eventdata),...
         'FontSize',12.5,...
         'Position',[71.1666666666667 8.23076923076925 36.3333333333333 2.15384615384615],...
         'String',{  'Light flies on dark background'; 'Dark flies on light background'; 'Other' },...
         'Style','popupmenu',...
         'Value',1,...
-        'Tag','lighterthanbgmenu');
-      
-      self.donebutton = uicontrol(...
-        'Parent',self.fig,...
-        'Units','characters',...
-        'FontUnits','pixels',...
-        'Callback',@(hObject,eventdata)self.donebuttonTwiddled(hObject,eventdata),...
-        'FontSize',12.5,...
-        'Position',[83.3333333333333 1.15384615384615 15 1.92307692307692],...
-        'String','Done',...
-        'Tag','donebutton');
-      
-      self.debugbutton = uicontrol(...
-        'Parent',self.fig,...
-        'Units','characters',...
-        'FontUnits','pixels',...
-        'Callback',@(hObject,eventdata)self.debugbuttonTwiddled(hObject,eventdata),...
-        'FontSize',12.5,...
-        'Position',[83.1666666666667 4.30769230769231 15.5 2.23076923076923],...
-        'String','Debug',...
-        'Tag','debugbutton');
+        'Tag','foregroundSignPopup');
       
       self.fixbgpanel = uipanel(...
         'Parent',self.fig,...
@@ -482,38 +492,39 @@ classdef AutoTrackSettingsController < handle
         'FontSize',12.5,...
         'Position',[7 0.615384615384615 6.33333333333333 2.07692307692308],...
         'String','Fill',...
+        'Enable','off',...
         'Tag','fillbutton');
       
-      self.radiusText = uicontrol(...
+      self.trackingROIHalfWidthText = uicontrol(...
         'Parent',self.fig,...
         'Units','characters',...
         'FontUnits','pixels',...
         'FontSize',12.5,...
         'HorizontalAlignment','left',...
-        'Position',[71.5 14.45 25 1.1],...
-        'String','Track Radius: ',...
+        'Position',[68 14.45 32 1.1],...
+        'String','ROI Half-Width:',...
         'Style','text',...
-        'Tag','radiusText');
+        'Tag','trackingROIHalfWidthText');
       
-      self.radiusPlusButton = uicontrol(...
+      self.trackingROIHalfWidthPlusButton = uicontrol(...
         'Parent',self.fig,...
         'Units','characters',...
         'FontUnits','pixels',...
-        'Callback',@(hObject,eventdata)self.radiusPlusButtonTwiddled(hObject,eventdata),...
+        'Callback',@(hObject,eventdata)self.trackingROIHalfWidthPlusButtonTwiddled(hObject,eventdata),...
         'FontSize',12.5,...
-        'Position',[89.2+9 13.9 3.5 1.9],...
+        'Position',[100 13.9 3.5 1.9],...
         'String','+',...
-        'Tag','radiusPlusButton');
+        'Tag','trackingROIHalfWidthPlusButton');
       
-      self.radiusMinusButton = uicontrol(...
+      self.trackingROIHalfWidthMinusButton = uicontrol(...
         'Parent',self.fig,...
         'Units','characters',...
         'FontUnits','pixels',...
-        'Callback',@(hObject,eventdata)self.radiusMinusButtonTwiddled(hObject,eventdata),...
+        'Callback',@(hObject,eventdata)self.trackingROIHalfWidthMinusButtonTwiddled(hObject,eventdata),...
         'FontSize',12.5,...
-        'Position',[93.5+9 13.9 3.5 1.9],...
+        'Position',[100+4.3 13.9 3.5 1.9],...
         'String','-',...
-        'Tag','radiusMinusButton');
+        'Tag','trackingROIHalfWidthMinusButton');
       
       self.thresholdText = uicontrol(...
         'Parent',self.fig,...
@@ -521,7 +532,7 @@ classdef AutoTrackSettingsController < handle
         'FontUnits','pixels',...
         'FontSize',12.5,...
         'HorizontalAlignment','left',...
-        'Position',[71.5 11.85 25 1.1],...
+        'Position',[68 11.85 25 1.1],...
         'String','Threshold: ',...
         'Style','text',...
         'Tag','thresholdText');
@@ -532,7 +543,7 @@ classdef AutoTrackSettingsController < handle
         'FontUnits','pixels',...
         'Callback',@(hObject,eventdata)self.thresholdPlusButtonTwiddled(hObject,eventdata),...
         'FontSize',12.5,...
-        'Position',[89.2+9 11.3 3.5 1.9],...
+        'Position',[100 11.3 3.5 1.9],...
         'String','+',...
         'Tag','thresholdPlusButton');
       
@@ -542,9 +553,52 @@ classdef AutoTrackSettingsController < handle
         'FontUnits','pixels',...
         'Callback',@(hObject,eventdata)self.thresholdMinusButtonTwiddled(hObject,eventdata),...
         'FontSize',12.5,...
-        'Position',[93.5+9 11.3 3.5 1.9],...
+        'Position',[100+4.3 11.3 3.5 1.9],...
         'String','-',...
         'Tag','thresholdMinusButton');      
+      
+      self.debugbutton = uicontrol(...
+        'Parent',self.fig,...
+        'Units','characters',...
+        'FontUnits','pixels',...
+        'Callback',@(hObject,eventdata)self.debugbuttonTwiddled(hObject,eventdata),...
+        'FontSize',12.5,...
+        'Position',[83.1666666666667 4.30769230769231 15.5 2.23076923076923],...
+        'String','Debug',...
+        'visible','off', ...
+        'Tag','debugbutton');      
+
+      fixbgpanelPosition=get(self.fixbgpanel,'position');
+      fixbgpanelXOffset=fixbgpanelPosition(1);
+      fixbgpanelWidth=fixbgpanelPosition(3);
+      fixbgpanelCenterX=fixbgpanelXOffset+fixbgpanelWidth/2;
+      doneCancelInterButtonWidth=4;  % chars
+      doneCancelButtonWidth=15;
+      doneCancelButtonHeight=2;
+      doneCancelButtonYOffset=2;
+      doneCancelButtonBBBoxWidth=2*doneCancelButtonWidth+doneCancelInterButtonWidth;
+      doneButtonXOffset=fixbgpanelXOffset+(fixbgpanelWidth-doneCancelButtonBBBoxWidth)/2;
+      cancelButtonXOffset=doneButtonXOffset+doneCancelButtonWidth+doneCancelInterButtonWidth;
+      
+      self.doneButton = uicontrol(...
+        'Parent',self.fig,...
+        'Units','characters',...
+        'FontUnits','pixels',...
+        'Callback',@(hObject,eventdata)self.doneButtonTwiddled(hObject,eventdata),...
+        'FontSize',12.5,...
+        'Position',[doneButtonXOffset doneCancelButtonYOffset doneCancelButtonWidth doneCancelButtonHeight],...
+        'String','Done',...
+        'Tag','doneButton');
+      
+      self.cancelButton = uicontrol(...
+        'Parent',self.fig,...
+        'Units','characters',...
+        'FontUnits','pixels',...
+        'Callback',@(hObject,eventdata)self.cancelButtonTwiddled(hObject,eventdata),...
+        'FontSize',12.5,...
+        'Position',[cancelButtonXOffset doneCancelButtonYOffset doneCancelButtonWidth doneCancelButtonHeight],...
+        'String','Cancel',...
+        'Tag','cancelButton');
     end  % method
     
   end  % methods

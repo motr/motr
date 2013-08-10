@@ -31,7 +31,7 @@ properties
   undolist
   needssaving
   bgthresh
-  bgcolor
+  % bgcolor
   doneseqs
   backgroundImage
   hswap
@@ -233,7 +233,7 @@ methods
     self.needssaving = 0;
     
     %self.bgthresh = 10;
-    self.bgcolor = nan;
+    % self.bgcolor = nan;
     
     % initialize data structures
     
@@ -2230,7 +2230,7 @@ methods
       zoomInOnSeq(self,seq);
     end
     self.stoptracking = false;
-    self.trackFlies(fly,f0,f1);
+    self.track(fly,f0,f1);
     
     if ~isempty( self.trackingstoppedframe )
       %    self.f = self.trackingstopped;
@@ -2327,8 +2327,6 @@ methods
     set(self.hautotrack,'color',color*.75,'linewidth',3,'linestyle','--',...
       'hittest','off');
     self.backgroundImageForCurrentAutoTrack = self.backgroundImage;
-    
-    % guidata(hObject,self);
   end  % method
   
   
@@ -2527,7 +2525,7 @@ methods
       self.zoomInOnSeq(seq);
     end
     self.stoptracking = false;
-    self.trackFlies(flies,f0,f1);
+    self.track(flies,f0,f1);
     for fly = flies(:)',
       self.fixDeathEvent(fly);
     end
@@ -3138,7 +3136,7 @@ methods
       self.needssaving = 0;  % don't need to save b/c just opened
       
       %self.foregroundSign = 1;
-      self.bgcolor = nan;
+      % self.bgcolor = nan;
 %       [ang_dist_wt, ...
 %        max_jump, ...
 %        bg_algorithm, ...
@@ -3290,7 +3288,7 @@ methods
     self.undolist = {};
     self.needssaving = 0;
     
-    self.bgcolor = nan;
+    % self.bgcolor = nan;
     
     % initialize data structures
     
@@ -4459,7 +4457,7 @@ methods
   end  % method
 
   % -----------------------------------------------------------------------  
-  function trackFlies(self,iFlies,iFirstFrame,iLastFrame)
+  function track(self,iFlies,iFirstFrame,iLastFrame)
     % track multiple flies
     % splintered from fixerrorsgui 6/23/12 JAB
     
@@ -4489,8 +4487,18 @@ methods
       end
       
       % get foreground/background classification around flies
-      [isfore,dfore,xpred,ypred,thetapred,r0,r1,c0,c1,~] = self.backgroundSubtraction(iFlies,iFrame);  %#ok
-      
+      %[isfore,dfore,xpred,ypred,thetapred,r0,r1,c0,c1,~] = self.backgroundSubtraction(iFlies,iFrame);  %#ok
+      currentFrame=self.readframe(iFrame);
+      [isfore,dfore,~,~,~,r0,r1,c0,c1,~] = ...
+        foregroundSegmentation(self.trx, ...
+                               iFlies, ...
+                               iFrame, ...
+                               currentFrame, ...
+                               self.maxjump, ...
+                               self.currentAutoTrackBackgroundImage, ...
+                               self.foregroundSign, ...
+                               self.backgroundThreshold);
+           
       [cc,ncc] = bwlabel(isfore);
       isdeleted = [];
       for fly2 = 1:self.nflies,
@@ -4664,79 +4672,79 @@ methods
   end  % method
   
   
-  % -----------------------------------------------------------------------
-  function [isForegroundBounded, ...
-            diffFromBackgroundBounded, ...
-            xPredicted,yPredicted,thetaPredicted, ...
-            r0,r1,c0,c1, ...
-            imBounded] = ...
-             backgroundSubtraction(self,iFlies,iFrameInVideo)
-  
-    trx = self.trx(iFlies);
-    nFlies = length(iFlies);
-    boxRadius = self.maxjump;
-    
-    xPredicted = zeros(1,nFlies);
-    yPredicted = zeros(1,nFlies);
-    thetaPredicted = zeros(1,nFlies);
-    for iFly = 1:nFlies,
-      iFrameInTrack = max( trx(iFly).off+(iFrameInVideo), 2 ); % first frame
-      xPrevious = trx(iFly).x(iFrameInTrack-1);
-      yPrevious = trx(iFly).y(iFrameInTrack-1);
-      thetaPrevious = trx(iFly).theta(iFrameInTrack-1);
-      if iFrameInTrack == 2,
-        xPredicted(iFly) = xPrevious;
-        yPredicted(iFly) = yPrevious;
-        thetaPredicted(iFly) = thetaPrevious;
-      else
-        xTwoBack = trx(iFly).x(iFrameInTrack-2);
-        yTwoBack = trx(iFly).y(iFrameInTrack-2);
-        thetaTwoBack = trx(iFly).theta(iFrameInTrack-2);
-        [xPredicted(iFly),yPredicted(iFly),thetaPredicted(iFly)] = ...
-          cvpred(xTwoBack,yTwoBack,thetaTwoBack, ...
-                 xPrevious,yPrevious,thetaPrevious);
-      end
-    end
-    
-    r0 = max(floor(min(yPredicted)-boxRadius),1); r1 = min(ceil(max(yPredicted)+boxRadius),self.nr);
-    c0 = max(floor(min(xPredicted)-boxRadius),1); c1 = min(ceil(max(xPredicted)+boxRadius),self.nc);
-    im = self.readframe(iFrameInVideo);
-%     if self.doFlipUpDown ,
-%       im=flipdim(im,1);
-% %       for channel = 1:size( im, 3 )
-% %         im(:,:,channel) = flipud( im(:,:,channel) );
-% %       end
+%   % -----------------------------------------------------------------------
+%   function [isForegroundBounded, ...
+%             diffFromBackgroundBounded, ...
+%             xPredicted,yPredicted,thetaPredicted, ...
+%             r0,r1,c0,c1, ...
+%             imBounded] = ...
+%              backgroundSubtraction(self,iFlies,iFrameInVideo)
+%   
+%     trx = self.trx(iFlies);
+%     nFlies = length(iFlies);
+%     boxRadius = self.maxjump;
+%     
+%     xPredicted = zeros(1,nFlies);
+%     yPredicted = zeros(1,nFlies);
+%     thetaPredicted = zeros(1,nFlies);
+%     for iFly = 1:nFlies,
+%       iFrameInTrack = max( trx(iFly).off+(iFrameInVideo), 2 ); % first frame
+%       xPrevious = trx(iFly).x(iFrameInTrack-1);
+%       yPrevious = trx(iFly).y(iFrameInTrack-1);
+%       thetaPrevious = trx(iFly).theta(iFrameInTrack-1);
+%       if iFrameInTrack == 2,
+%         xPredicted(iFly) = xPrevious;
+%         yPredicted(iFly) = yPrevious;
+%         thetaPredicted(iFly) = thetaPrevious;
+%       else
+%         xTwoBack = trx(iFly).x(iFrameInTrack-2);
+%         yTwoBack = trx(iFly).y(iFrameInTrack-2);
+%         thetaTwoBack = trx(iFly).theta(iFrameInTrack-2);
+%         [xPredicted(iFly),yPredicted(iFly),thetaPredicted(iFly)] = ...
+%           cvpred(xTwoBack,yTwoBack,thetaTwoBack, ...
+%                  xPrevious,yPrevious,thetaPrevious);
+%       end
 %     end
-    im=double(im);
-    bg=double(self.backgroundImageForCurrentAutoTrack());
-    diffFromBackground = im - bg;  %#ok
-
-%     figure; imagesc(im); colormap(gray); axis image; title('im');
-%     figure; imagesc(bg); colormap(gray); axis image; title('bg');
-%     maxAbs=max(abs(diffFromBackground(:)));
-%     figure; imagesc(diffFromBackground,[-maxAbs +maxAbs]); colormap(bipolar()); axis image; title('diffFromBackground'); colorbar();
-
-    imBounded = im(r0:r1,c0:c1);
-    bgBounded=bg(r0:r1,c0:c1);
-    diffFromBackgroundBounded = imBounded - bgBounded;
-    
-%     figure; imagesc(imBounded); colormap(gray); axis image; title('imBounded');
-%     figure; imagesc(bgBounded); colormap(gray); axis image; title('bgBounded');
-%     maxAbs=max(abs(diffFromBackgroundBounded(:)));
-%     figure; imagesc(diffFromBackgroundBounded,[-maxAbs +maxAbs]); colormap(bipolar()); axis image; title('diffFromBackgroundBounded'); colorbar();
-    
-    if self.foregroundSign == 1
-      diffFromBackgroundBoundedRectified = max(diffFromBackgroundBounded,0);
-    elseif self.foregroundSign == -1
-      diffFromBackgroundBoundedRectified = max(-diffFromBackgroundBounded,0);
-    else
-      diffFromBackgroundBoundedRectified = abs(diffFromBackgroundBounded);
-    end
-    isForegroundBounded = (diffFromBackgroundBoundedRectified>=self.bgthresh);
-    se = strel('disk',1);
-    isForegroundBounded = imclose(isForegroundBounded,se);
-    isForegroundBounded = imopen(isForegroundBounded,se);
-  end  % method
+%     
+%     r0 = max(floor(min(yPredicted)-boxRadius),1); r1 = min(ceil(max(yPredicted)+boxRadius),self.nr);
+%     c0 = max(floor(min(xPredicted)-boxRadius),1); c1 = min(ceil(max(xPredicted)+boxRadius),self.nc);
+%     im = self.readframe(iFrameInVideo);
+% %     if self.doFlipUpDown ,
+% %       im=flipdim(im,1);
+% % %       for channel = 1:size( im, 3 )
+% % %         im(:,:,channel) = flipud( im(:,:,channel) );
+% % %       end
+% %     end
+%     im=double(im);
+%     bg=double(self.backgroundImageForCurrentAutoTrack());
+%     diffFromBackground = im - bg;  %#ok
+% 
+% %     figure; imagesc(im); colormap(gray); axis image; title('im');
+% %     figure; imagesc(bg); colormap(gray); axis image; title('bg');
+% %     maxAbs=max(abs(diffFromBackground(:)));
+% %     figure; imagesc(diffFromBackground,[-maxAbs +maxAbs]); colormap(bipolar()); axis image; title('diffFromBackground'); colorbar();
+% 
+%     imBounded = im(r0:r1,c0:c1);
+%     bgBounded=bg(r0:r1,c0:c1);
+%     diffFromBackgroundBounded = imBounded - bgBounded;
+%     
+% %     figure; imagesc(imBounded); colormap(gray); axis image; title('imBounded');
+% %     figure; imagesc(bgBounded); colormap(gray); axis image; title('bgBounded');
+% %     maxAbs=max(abs(diffFromBackgroundBounded(:)));
+% %     figure; imagesc(diffFromBackgroundBounded,[-maxAbs +maxAbs]); colormap(bipolar()); axis image; title('diffFromBackgroundBounded'); colorbar();
+%     
+%     if self.foregroundSign == 1
+%       diffFromBackgroundBoundedRectified = max(diffFromBackgroundBounded,0);
+%     elseif self.foregroundSign == -1
+%       diffFromBackgroundBoundedRectified = max(-diffFromBackgroundBounded,0);
+%     else
+%       diffFromBackgroundBoundedRectified = abs(diffFromBackgroundBounded);
+%     end
+%     isForegroundBounded = (diffFromBackgroundBoundedRectified>=self.bgthresh);
+%     se = strel('disk',1);
+%     isForegroundBounded = imclose(isForegroundBounded,se);
+%     isForegroundBounded = imopen(isForegroundBounded,se);
+%   end  % method
     
   
   % -----------------------------------------------------------------------
@@ -4746,9 +4754,15 @@ methods
 
   
   % -----------------------------------------------------------------------
-  function incrementBackgroundThreshold(self,change)
-    self.bgthresh=self.bgthresh+change;
+  function setBackgroundThreshold(self,newValue)
+    self.bgthresh=newValue;
   end
+
+  
+%   % -----------------------------------------------------------------------
+%   function incrementBackgroundThreshold(self,change)
+%     self.bgthresh=self.bgthresh+change;
+%   end
 
   
   % -----------------------------------------------------------------------
@@ -4770,22 +4784,34 @@ methods
 
   
   % -----------------------------------------------------------------------
-  function bgcolor = getBackgroundColor(self)
-    bgcolor=self.bgcolor;
+  function setMaximumJump(self,newValue)
+    self.maxjump=newValue;
   end
 
   
+%   % -----------------------------------------------------------------------
+%   function bgcolor = getBackgroundColor(self)
+%     bgcolor=self.bgcolor;
+%   end
+% 
+%   
+%   % -----------------------------------------------------------------------
+%   function setBackgroundColor(self,newValue)
+%     self.bgcolor=newValue;
+%   end
+% 
+%   
+%   % -----------------------------------------------------------------------
+%   function initializeBackgroundImageForCurrentAutoTrack(self)
+%     self.backgroundImageForCurrentAutoTrack=self.backgroundImageForCurrentAutoTrack;
+%   end
+  
+  
   % -----------------------------------------------------------------------
-  function setBackgroundColor(self,newValue)
-    self.bgcolor=newValue;
+  function value = getBackgroundImage(self)
+    value=self.backgroundImage;
   end
 
-  
-  % -----------------------------------------------------------------------
-  function initializeBackgroundImageForCurrentAutoTrack(self)
-    self.backgroundImageForCurrentAutoTrack=self.backgroundImageForCurrentAutoTrack;
-  end
-  
   
   % -----------------------------------------------------------------------
   function value = getBackgroundImageForCurrentAutoTrack(self)
@@ -4824,9 +4850,21 @@ methods
 
   
   % -----------------------------------------------------------------------
-  function incrementMaximumJump(self,change)
-    self.maxjump=round(self.maxjump+change);
+  function value = getTrx(self)
+    value=self.trx;
   end
+
+  
+  % -----------------------------------------------------------------------
+  function value = getCurrentFrame(self)
+    value=self.readframe(self.f);
+  end
+
+  
+%   % -----------------------------------------------------------------------
+%   function incrementMaximumJump(self,change)
+%     self.maxjump=round(self.maxjump+change);
+%   end
   
 end % methods
   
