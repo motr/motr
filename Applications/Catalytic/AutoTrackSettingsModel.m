@@ -11,7 +11,7 @@ classdef AutoTrackSettingsModel < handle
     c1  % the highest-index col of the ROI in the full frame
     roiImageGH  % the image HG object, showing the ROI, with background blacked out (or whited out, depending)
     %perimeterLine  % the line showing the boundary between foreground and background
-    fillRegionBoundLine  % the line showing the current fill region
+    %fillRegionBoundLine  % the line showing the current fill region
     fillRegionAnchorCorner  % the corner of the fill region that is fixed during the drag
     fillRegionPointerCorner  % the corner of the fill region under the pointer during the drag
     
@@ -19,7 +19,7 @@ classdef AutoTrackSettingsModel < handle
     backgroundThreshold
     foregroundSign
     trackingROIHalfWidth
-    backgroundColor
+    backgroundColor  % the color used for filling (fillColor might be a better name)
     iFlies
     iFrame
     trx
@@ -87,7 +87,6 @@ classdef AutoTrackSettingsModel < handle
       bgcurr(r0:r1,c0:c1) = self.backgroundColor;
       self.backgroundImage=bgcurr;
     end
-    
     
     
     % ---------------------------------------------------------------------

@@ -104,13 +104,13 @@ classdef AutoTrackSettingsController < handle
     
     
     % ---------------------------------------------------------------------
-    function debugbuttonTwiddled(self, hObject, eventdata)  %#ok
+    function debugButtonTwiddled(self, hObject, eventdata)  %#ok
       keyboard;
     end
     
     
     % ---------------------------------------------------------------------
-    function fillbuttonTwiddled(self, hObject, eventdata)  %#ok
+    function fillButtonTwiddled(self, hObject, eventdata)  %#ok
       self.model.doBackgroundFill();
       self.view.updateSegmentationPreview();
     end
@@ -121,7 +121,7 @@ classdef AutoTrackSettingsController < handle
     function mouseMoved(self,hObject,eventdata)  %#ok
       %if isfield(self,'choosepatch') || ~self.choosepatch
       %fprintf('Entered mouseMoved()\n');
-      if isempty(self.view.choosepatch) || ~self.view.choosepatch
+      if isempty(self.view.isFillRectangleDragInProgress) || ~self.view.isFillRectangleDragInProgress
         return
       end
       %fprintf('Entered mouseMoved() inner sanctum\n');
