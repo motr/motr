@@ -33,7 +33,7 @@ classdef AutoTrackSettingsModel < handle
   methods
     % ---------------------------------------------------------------------
     function self=AutoTrackSettingsModel(catalyticController)
-      self.backgroundImage=catalyticController.getBackgroundImage();
+      self.backgroundImage=catalyticController.getBackgroundImageForCurrentAutoTrack();
       self.backgroundThreshold=catalyticController.getBackgroundThreshold();
       self.foregroundSign=catalyticController.getForegroundSign();
       self.trackingROIHalfWidth=catalyticController.getMaximumJump();
@@ -46,6 +46,7 @@ classdef AutoTrackSettingsModel < handle
       self.nRows=catalyticController.getNRows();
       self.nCols=catalyticController.getNCols();
       self.isInEyedropperMode=false;
+      %self.isFillRectangleDragInProgress = false;
       self.syncROIBounds();
     end
     
@@ -65,10 +66,41 @@ classdef AutoTrackSettingsModel < handle
     
     % ---------------------------------------------------------------------
     function setBackgroundColorToSample(self,x,y)
+      x = min(max(1,round(x)),self.nCols);
+      y = min(max(1,round(y)),self.nRows);      
       self.backgroundColor=self.currentFrame(y,x);
     end
     
         
+    % ---------------------------------------------------------------------
+    function startFillRegionDrag(self,x,y)
+      %self.isFillRectangleDragInProgress = true;      
+      x = min(max(self.c0,round(x)),self.c1);
+      y = min(max(self.r0,round(y)),self.r1);      
+      self.fillRegionAnchorCorner = [x,y];
+      self.fillRegionPointerCorner=self.fillRegionAnchorCorner;
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function continueFillRegionDrag(self,x,y)
+      x = min(max(self.c0,round(x)),self.c1);
+      y = min(max(self.r0,round(y)),self.r1);      
+      self.fillRegionPointerCorner=[x y];
+    end
+
+    
+    % ---------------------------------------------------------------------
+    function endFillRegionDrag(self)
+      %self.isFillRectangleDragInProgress = false;      
+      % If the rectangle is of zero area, delete it
+      if all(self.fillRegionAnchorCorner==self.fillRegionPointerCorner)
+        self.fillRegionAnchorCorner=[];
+        self.fillRegionPointerCorner=[];
+      end
+    end
+    
+    
     % ---------------------------------------------------------------------
     function doBackgroundFill(self)
       if isempty(self.fillRegionAnchorCorner) || isempty(self.fillRegionPointerCorner)
@@ -96,6 +128,18 @@ classdef AutoTrackSettingsModel < handle
     end
     
     
+%     % ---------------------------------------------------------------------
+%     function setFillRegionAnchorCorners(self,fillRegionAnchorCorner)
+%       self.fillRegionAnchorCorner = fillRegionAnchorCorner;
+%     end
+%     
+%     
+%     % ---------------------------------------------------------------------
+%     function setFillRegionPointerCorner(self,fillRegionPointerCorner)
+%       self.fillRegionPointerCorner = fillRegionPointerCorner;
+%     end
+    
+    
     % ---------------------------------------------------------------------
     function setIsInEyedropperMode(self,newValue)
       self.isInEyedropperMode = newValue;
@@ -103,7 +147,7 @@ classdef AutoTrackSettingsModel < handle
     
     
     % ---------------------------------------------------------------------
-    function forgetFillRegionCorners(self)
+    function clearFillRegionCorners(self)
       self.fillRegionAnchorCorner=[];
       self.fillRegionPointerCorner=[];
     end

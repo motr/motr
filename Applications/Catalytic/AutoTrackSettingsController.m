@@ -2,6 +2,7 @@ classdef AutoTrackSettingsController < handle
   
   properties
     catalyticController  % the parent CatalyticController
+    isFillRectangleDragInProgress  % true iff the user is currently in the process of drawing a rectangle in view.mainAxes
     model
     view    
   end  % properties
@@ -10,6 +11,7 @@ classdef AutoTrackSettingsController < handle
     % ---------------------------------------------------------------------
     function self=AutoTrackSettingsController(catalyticController)
       self.catalyticController=catalyticController;
+      self.isFillRectangleDragInProgress=false;
       self.model=AutoTrackSettingsModel(catalyticController);
       self.view=AutoTrackSettingsView(self.model,self);
     end
@@ -83,24 +85,9 @@ classdef AutoTrackSettingsController < handle
     function eyedropperRadiobuttonTwiddled(self, source, event)  %#ok
       value=get(source,'value');
       self.model.setIsInEyedropperMode(value);
+      % no need to update view in this case
     end
     
-    
-    
-    % ---------------------------------------------------------------------
-    function mouseButtonDownInMainAxes(self, hObject, eventdata)  %#ok
-      %fprintf('Entered mouseButtonDownInMainAxes()\n');
-      r=self.view.getMainAxesCurrentPoint();
-      x = min(max(1,round(r(1))),self.model.nCols);
-      y = min(max(1,round(r(2))),self.model.nRows);
-      
-      if self.model.isInEyedropperMode ,
-        self.model.setBackgroundColorToSample(x,y);
-        self.view.updateBackgroundColorImage();
-      else
-        self.view.startFillRegionDrag(x,y);
-      end
-    end
     
     
     % ---------------------------------------------------------------------
@@ -118,26 +105,52 @@ classdef AutoTrackSettingsController < handle
     
     
     % ---------------------------------------------------------------------
-    function mouseMoved(self,hObject,eventdata)  %#ok
-      %if isfield(self,'choosepatch') || ~self.choosepatch
-      %fprintf('Entered mouseMoved()\n');
-      if isempty(self.view.isFillRectangleDragInProgress) || ~self.view.isFillRectangleDragInProgress
-        return
+    function mouseButtonDownInMainAxes(self, source, event)  %#ok
+      %fprintf('Entered mouseButtonDownInMainAxes()\n');
+      %source
+      %event
+      [x,y]=self.view.getMainAxesCurrentPoint();
+      if self.model.isInEyedropperMode ,
+        self.model.setBackgroundColorToSample(x,y);
+        self.view.updateBackgroundColorImage();
+      else
+        self.isFillRectangleDragInProgress = true;
+        self.model.startFillRegionDrag(x,y);
+        self.view.updateFillRegionBoundLine();
       end
-      %fprintf('Entered mouseMoved() inner sanctum\n');
-      
-      r=self.view.getMainAxesCurrentPoint();
-      x=r(1);  y=r(2);
-      x = min(max(self.model.c0,round(x)),self.model.c1);
-      y = min(max(self.model.r0,round(y)),self.model.r1);
-      self.view.continueFillRegionDrag(x,y);
     end
     
     
     % ---------------------------------------------------------------------
-    function mouseButtonReleased(self,hObject,eventdata)  %#ok
-      [fillRegionAnchorCorner,fillRegionPointerCorner]=self.view.endFillRegionDrag();
-      self.model.setFillRegionCorners(fillRegionAnchorCorner,fillRegionPointerCorner)
+    function mouseMoved(self,source,event)  %#ok
+      %if isfield(self,'choosepatch') || ~self.choosepatch
+      %fprintf('Entered mouseMoved()\n');
+      if isempty(self.isFillRectangleDragInProgress) || ~self.isFillRectangleDragInProgress
+        return
+      end
+      %source
+      %event
+      %fprintf('Entered mouseMoved() inner sanctum\n');
+      
+      [x,y]=self.view.getMainAxesCurrentPoint();
+      self.model.continueFillRegionDrag(x,y);
+      self.view.updateFillRegionBoundLine();      
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function mouseButtonReleased(self,source,event)  %#ok
+      if isempty(self.isFillRectangleDragInProgress) || ~self.isFillRectangleDragInProgress
+        return
+      end
+      [x,y]=self.view.getMainAxesCurrentPoint();
+      %source
+      %event
+      self.isFillRectangleDragInProgress = false;
+      self.model.continueFillRegionDrag(x,y);
+      self.model.endFillRegionDrag();
+      self.view.updateFillRegionBoundLine();      
+      self.view.updateFillButtonEnablement();
     end
     
     

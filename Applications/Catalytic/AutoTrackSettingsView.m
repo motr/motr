@@ -27,17 +27,14 @@ classdef AutoTrackSettingsView < handle
     %perimeterLine  % the line showing the boundary between foreground and background
     fillRegionBoundLine  % the line showing the current fill region    
     
-    fillRegionAnchorCorner
-    fillRegionPointerCorner
-    isFillRectangleDragInProgress  % true iff the user is currently in the process of drawing a rectangle in mainAxes
-    
-end  % properties
+    % fillRegionAnchorCorner
+    % fillRegionPointerCorner
+  end  % properties
   
   methods
     % ---------------------------------------------------------------------
     function self=AutoTrackSettingsView(model,controller)      
       self.model=model;
-      self.isFillRectangleDragInProgress = false;      
       
       self.fig = figure(...
         'Units','characters',...
@@ -280,29 +277,14 @@ end  % properties
     
 
     % ---------------------------------------------------------------------
-    function r=getMainAxesCurrentPoint(self)  %#ok
+    function [x,y]=getMainAxesCurrentPoint(self)  %#ok
       pt = get(self.mainAxes,'currentpoint');
       %[nr,nc]=size(self.currentFrame);
-      r=pt(1,:);  % the <x,y> vector
+      %r=pt(1,:);  % the <x,y> vector
+      x=pt(1,1);
+      y=pt(1,2);
     end
 
-    
-    % ---------------------------------------------------------------------
-    function startFillRegionDrag(self,x,y) 
-      if ~isempty(self.fillRegionBoundLine) && ishandle(self.fillRegionBoundLine)
-        delete(self.fillRegionBoundLine);
-      end
-      self.fillRegionAnchorCorner = [x,y];
-      self.fillRegionPointerCorner=self.fillRegionAnchorCorner;
-      self.fillRegionBoundLine = ...
-        line('parent',self.mainAxes, ...
-             'xdata',[x,x,x,x,x], ...
-             'ydata',[y,y,y,y,y], ...
-             'zdata',[1 1 1 1 1], ...
-             'color','g');
-      self.isFillRectangleDragInProgress = true;
-    end
-    
     
     % ---------------------------------------------------------------------      
     function updateSegmentationPreview(self)
@@ -348,34 +330,6 @@ end  % properties
     
     
     % ---------------------------------------------------------------------
-    function continueFillRegionDrag(self,x,y)
-      self.fillRegionPointerCorner=[x y];
-      xAnchor=self.fillRegionAnchorCorner(1);
-      yAnchor=self.fillRegionAnchorCorner(2);
-      xPointer=self.fillRegionPointerCorner(1);
-      yPointer=self.fillRegionPointerCorner(2);
-      set(self.fillRegionBoundLine,...
-          'xdata',[xAnchor,xAnchor,xPointer,xPointer,xAnchor],...
-          'ydata',[yAnchor,yPointer,yPointer,yAnchor,yAnchor]);
-    end
-
-    
-    % ---------------------------------------------------------------------
-    function [fillRegionAnchorCorner,fillRegionPointerCorner]=endFillRegionDrag(self)
-      self.isFillRectangleDragInProgress = false;
-      % If the rectangle is of zero area, delete it
-      if all(self.fillRegionAnchorCorner==self.fillRegionPointerCorner)
-        delete(self.fillRegionBoundLine);
-        self.fillRegionBoundLine=[];
-        self.fillRegionAnchorCorner=[];
-        self.fillRegionPointerCorner=[];
-      end
-      set(self.fillButton,'enable',onIff(~isempty(self.fillRegionAnchorCorner)));
-      fillRegionAnchorCorner=self.fillRegionAnchorCorner;
-      fillRegionPointerCorner=self.fillRegionPointerCorner;
-    end
-
-    % ---------------------------------------------------------------------
     function updateBackgroundColorImage(self)
       set(self.bgColorImageGH, ...
           'cdata',repmat(uint8(self.model.backgroundColor),[1,1,3]));
@@ -383,7 +337,8 @@ end  % properties
     
     % ---------------------------------------------------------------------
     function updateFillRegionBoundLine(self)
-      if isempty(self.fillRegionAnchorCorner) || isempty(self.fillRegionPointerCorner) 
+      if isempty(self.model.fillRegionAnchorCorner) || isempty(self.model.fillRegionPointerCorner) 
+        % case where no fill region is currently defined
         if ~isempty(self.fillRegionBoundLine)
           if ishandle(self.fillRegionBoundLine)
             delete(self.fillRegionBoundLine);
@@ -392,10 +347,10 @@ end  % properties
         end
       else
         % case where fill region is defined
-        xAnchor=self.fillRegionAnchorCorner(1);
-        yAnchor=self.fillRegionAnchorCorner(2);
-        xPointer=self.fillRegionPointerCorner(1);
-        yPointer=self.fillRegionPointerCorner(2);
+        xAnchor=self.model.fillRegionAnchorCorner(1);
+        yAnchor=self.model.fillRegionAnchorCorner(2);
+        xPointer=self.model.fillRegionPointerCorner(1);
+        yPointer=self.model.fillRegionPointerCorner(2);
         if isempty(self.fillRegionBoundLine) || ~ishandle(self.fillRegionBoundLine)
           self.fillRegionBoundLine = ...
             line('parent',self.mainAxes, ...
@@ -448,6 +403,18 @@ end  % properties
         set(self.foregroundSignPopup,'value',3);
       end
     end  % method
+
+    
+    % ---------------------------------------------------------------------
+    function updateFillButtonEnablement(self)
+      set(self.fillButton,'enable',onIff(~isempty(self.model.fillRegionAnchorCorner)));
+    end    
+    
+    
+    % ---------------------------------------------------------------------
+    function updateEyedropperRadiobutton(self)
+      set(self.eyedropperRadiobutton,'value',self.model.isInEyedropperMode);
+    end    
     
     
     % ---------------------------------------------------------------------
@@ -457,6 +424,8 @@ end  % properties
       self.updateTrackingROIHalfWidthText();
       self.updateBackgroundThresholdText();
       self.updateFillRegionBoundLine();
+      self.updateFillButtonEnablement();
+      self.updateEyedropperRadiobutton();
       self.updateSegmentationPreview();
     end
     
