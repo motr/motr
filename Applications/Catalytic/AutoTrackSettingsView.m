@@ -149,7 +149,7 @@ classdef AutoTrackSettingsView < handle
         'Position',[21.3333333333333 1.30769230769231 19 1.2],...
         'String','Eyedropper',...
         'Style','radiobutton',...
-        'value',0, ...
+        'value',0, ...  % initially off
         'Tag','eyedropperRadiobutton');
       
       self.fillButton = uicontrol(...
@@ -411,10 +411,10 @@ classdef AutoTrackSettingsView < handle
     end    
     
     
-    % ---------------------------------------------------------------------
-    function updateEyedropperRadiobutton(self)
-      set(self.eyedropperRadiobutton,'value',self.model.isInEyedropperMode);
-    end    
+%     % ---------------------------------------------------------------------
+%     function updateEyedropperRadiobutton(self)
+%       set(self.eyedropperRadiobutton,'value',self.model.isInEyedropperMode);
+%     end    
     
     
     % ---------------------------------------------------------------------
@@ -425,7 +425,7 @@ classdef AutoTrackSettingsView < handle
       self.updateBackgroundThresholdText();
       self.updateFillRegionBoundLine();
       self.updateFillButtonEnablement();
-      self.updateEyedropperRadiobutton();
+      %self.updateEyedropperRadiobutton();
       self.updateSegmentationPreview();
     end
     

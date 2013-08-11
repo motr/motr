@@ -83,8 +83,10 @@ classdef AutoTrackSettingsController < handle
     
     % ---------------------------------------------------------------------
     function eyedropperRadiobuttonTwiddled(self, source, event)  %#ok
-      value=get(source,'value');
-      self.model.setIsInEyedropperMode(value);
+      % nothing to do -- eyedropper state not kept in model
+      
+      %value=get(source,'value');
+      %self.model.setIsInEyedropperMode(value);
       % no need to update view in this case
     end
     
@@ -110,7 +112,8 @@ classdef AutoTrackSettingsController < handle
       %source
       %event
       [x,y]=self.view.getMainAxesCurrentPoint();
-      if self.model.isInEyedropperMode ,
+      isEyedropperOn=get(self.view.eyedropperRadiobutton,'value');
+      if isEyedropperOn ,
         self.model.setBackgroundColorToSample(x,y);
         self.view.updateBackgroundColorImage();
       else

@@ -27,7 +27,7 @@ classdef AutoTrackSettingsModel < handle
     nRows  % number of rows in the full frame (not the tracking ROI)
     nCols  % number of cols in the full frame (not the tracking ROI)
     
-    isInEyedropperMode
+    % isInEyedropperMode
   end  % properties
   
   methods
@@ -45,7 +45,7 @@ classdef AutoTrackSettingsModel < handle
       self.currentFrame=catalyticController.getCurrentFrame();
       self.nRows=catalyticController.getNRows();
       self.nCols=catalyticController.getNCols();
-      self.isInEyedropperMode=false;
+      %self.isInEyedropperMode=false;
       %self.isFillRectangleDragInProgress = false;
       self.syncROIBounds();
     end
@@ -140,10 +140,10 @@ classdef AutoTrackSettingsModel < handle
 %     end
     
     
-    % ---------------------------------------------------------------------
-    function setIsInEyedropperMode(self,newValue)
-      self.isInEyedropperMode = newValue;
-    end
+%     % ---------------------------------------------------------------------
+%     function setIsInEyedropperMode(self,newValue)
+%       self.isInEyedropperMode = newValue;
+%     end
     
     
     % ---------------------------------------------------------------------
