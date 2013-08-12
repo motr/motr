@@ -1,4 +1,4 @@
-function fnDeleteSingleMouseClip(hFig, iClip)
+function fnDeleteSingleMouseClip(hFig, iClipSM)
 
 % Get the experiment info out of the figure.
 u=get(hFig,'userdata');
@@ -11,7 +11,7 @@ trainStatus=u.trainStatus;
 nClipSMBefore=length(clipSMFNAbs);
 
 % get rid of the inidicated clip in clipSMFN
-clipSMFNAbs(iClip)=[];
+clipSMFNAbs(iClipSM)=[];
 
 % update iClipSMCurr
 if nClipSMBefore==1
@@ -26,13 +26,13 @@ if nClipSMBefore==1
 end
 
 % Save the new info into the userdata.
-u.clipSMFN=clipSMFNAbs;
+u.clipSMFNAbs=clipSMFNAbs;
 u.trainStatus=trainStatus;
 u.iClipSMCurr=iClipSMCurr;
 set(hFig,'userdata',u);
 
 % Save the new info into the clipFN file
-saveClipFN(expDirName,u.clipFNAbs,clipSMFNAbs)
+saveClipFN(expDirName,u.clipFNAbs,clipSMFNAbs);
 
 % now update the GUI to reflect the status
 fnUpdateGUIStatus(hFig);
