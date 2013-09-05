@@ -13,7 +13,10 @@ histogram=seqHistogramFromNonRandomSample(inputFileName,nMaxFramesToSample);
 % cutoff for re-scaling the frames
 cumulativeHistogram=cumsum(histogram);
 normedCumulativeHistogram=cumulativeHistogram/cumulativeHistogram(end);
-cutoff=interp1(normedCumulativeHistogram,0:255,0.99);
+countGrid=(0:255)';
+[normedCumulativeHistogramUnique,iUnique]=unique(normedCumulativeHistogram);
+countGridUnique=countGrid(iUnique);
+cutoff=interp1(normedCumulativeHistogramUnique,countGridUnique,0.99);
 
 % Read the input file metadata
 seqMetadata=fnReadSeqInfo(inputFileName);
