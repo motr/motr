@@ -157,6 +157,11 @@ else
     save(strSeekFileName,'strSeqFileName','aiSeekPos','afTimestamp');
 end
 
+% hack for some .seq files that inexplicably have their FPS value set to inf
+if ~isfinite(strctMovInfo.m_fFPS) && all(isfinite(strctMovInfo.m_afTimestamp))
+  strctMovInfo.m_fFPS=1/mean(diff(strctMovInfo.m_afTimestamp));
+end
+
 return
 
 
