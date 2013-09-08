@@ -293,9 +293,6 @@ else
   fnWaitForAnyTrackFile(hFig, expDirName, clipFNAbs);
   set(hFig,'pointer','arrow');
   drawnow('expose');  drawnow('update');
-  %fnUpdateStatus(handles, 2, 4);
-  %fnSetStatusCode(handles, 2, 4);
-  %fnSyncOverallTrackingStatusCode(handles);
   fnUpdateGUIStatus(hFig);
 end
 
