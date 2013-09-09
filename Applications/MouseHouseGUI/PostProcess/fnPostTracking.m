@@ -30,7 +30,7 @@ saveTrackFile(rawTrackFN,trackers,clipFNAbsThis);
 %astrctTrackers = fnHouseIdentities(astrctTrackers, clipThisInfo, ...
 %                                   classifiersFN);
 trackers=fnHouseIdentities(trackers, clipThisInfo, classifiersFN);
-trackFN = fullfile(tracksDirName, [sClipName '.mat']);
+trackFN = fullfile(tracksDirName, [sClipName '_tracks.mat']);
 %save(trackFN, 'astrctTrackers', 'strMovieFileName');
 saveTrackFile(trackFN,trackers,clipFNAbsThis);
 fprintf('Done. Saved track file %s\n', trackFN);
