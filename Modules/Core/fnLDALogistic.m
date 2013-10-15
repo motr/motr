@@ -44,7 +44,23 @@ n2 = size(DataNeg,1);
 
 Yglm = [ones(n1,1);zeros(n2,1)];
 
+
+% Turn off the warnings about perfect separation and iteration limits reached 
+% so they don't scare the user
+originalState=warning('query','stats:glmfit:PerfectSeparation');
+originalState=originalState.state;
+warning('off','stats:glmfit:PerfectSeparation');
+
+originalState2=warning('query','stats:glmfit:IterationLimit');
+originalState2=originalState2.state;
+warning('off','stats:glmfit:IterationLimit');
+
+% Do the logisitic regression
 afBCoeff = glmfit([afDataProjPos;afDataProjNeg], Yglm,'binomial');
+
+% Turn the warnings back on
+warning(originalState2,'stats:glmfit:IterationLimit');
+warning(originalState,'stats:glmfit:PerfectSeparation');
 
 
 % 
