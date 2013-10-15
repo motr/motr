@@ -23,7 +23,7 @@ classdef AutoTrackSettingsModel < handle
     iFlies
     iFrame
     trx
-    currentFrame
+    currentFrame  % current frame (full, not ROI)
     nRows  % number of rows in the full frame (not the tracking ROI)
     nCols  % number of cols in the full frame (not the tracking ROI)
     
