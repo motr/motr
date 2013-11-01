@@ -13,6 +13,7 @@ nFrames=seqMetadata.m_iNumFrames;
 vw=VideoWriter(outputFileName,'Motion JPEG 2000');
 vw.FrameRate=seqMetadata.m_fFPS;
 vw.CompressionRatio=10;  % conservative compression ratio
+%vw.CompressionRatio=20;  % less conservative compression ratio
 vw.open();
 
 % read a frame, write a frame
