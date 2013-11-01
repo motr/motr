@@ -225,11 +225,14 @@ fnLog(sprintf('Found %d reliable frames',sum(abReliableFrames)));
 
 % If there are no reliable frames, throw an exception.
 iNumReliableFrames=sum(abReliableFrames);
-if iNumReliableFrames==0
-  excp=MException('fnHOGFeaturesFromSMClip:noReliableFrames', ...
-                  'No reliable frames at all in %s!', ...
-                  strctInputFile);
-  throw(excp);              
+if iNumReliableFrames==0 ,
+%   excp=MException('fnHOGFeaturesFromSMClip:noReliableFrames', ...
+%                   'No reliable frames at all in %s!', ...
+%                   strctInputFile.m_strFileName);
+%   throw(excp);              
+  error('fnHOGFeaturesFromSMClip:noReliableFrames', ...
+        'No reliable frames at all in %s!', ...
+        strctInputFile.m_strFileName);
 end
 
 % Identify "problematic" frames, ones marked as reliable but where theta hat 

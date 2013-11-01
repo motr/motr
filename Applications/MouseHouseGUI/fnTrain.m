@@ -1,4 +1,4 @@
-function fnTrain(hFig)
+function success=fnTrain(hFig)
 
 global g_strctGlobalParam g_iLogLevel;  %#ok
 global g_bMouseHouse;
@@ -10,6 +10,9 @@ global g_strMouseStuffRootDirName;
 if isempty(g_bMouseHouse)
     g_bMouseHouse=false;
 end
+
+% Let's be optimistic about success
+success=true;
 
 % get the userdata
 u=get(hFig,'userdata');
@@ -90,7 +93,7 @@ outputFN=cell(nClip,1);
 acVideoInfos=cell(nClip,1);
 for i=1:nClip
   clipSMFNAbsThis=clipSMFNAbs{i};
-  [dummy,clipBaseName] = fileparts(clipSMFNAbsThis);  %#ok
+  [dummy,clipBaseName,clipExt] = fileparts(clipSMFNAbsThis);  %#ok
   outputFN{i} = fullfile(tuningDirName, clipBaseName, 'Identities.mat');
   acVideoInfos{i} = fnReadVideoInfo(clipSMFNAbsThis);
   if willGenerate(i)
@@ -104,21 +107,24 @@ for i=1:nClip
       set(hFig,'pointer','watch');
       drawnow('expose');  drawnow('update');
       try
-        fnLearnMouseIdentity(clipSMFNAbsThis, strctBootstrap, outputFN{i});
+       fnLearnMouseIdentity(clipSMFNAbsThis, strctBootstrap, outputFN{i});
       catch excp
-         set(hFig,'pointer','arrow');
-         drawnow('expose');  drawnow('update');
-         if strcmp(excp.identifier,'fnLearnMouseIdentity:noReliableFrames')
-           h=errordlg(sprintf(['No reliable frames found in %s.seq.  ' ...
-                               'Maybe try training on it again?'], ...
-                              clipBaseName), ...
-                      'No reliable frames', ...
-                      'modal');
-           uiwait(h);
-           return;
-         else
-           rethrow(excp);
-         end
+        %excp.identifier
+        set(hFig,'pointer','arrow');
+        drawnow('expose');  drawnow('update');
+        if strcmp(excp.identifier,'fnLearnMouseIdentity:noReliableFrames') || ...
+           strcmp(excp.identifier,'fnHOGFeaturesFromSMClip:noReliableFrames')
+          h=errordlg(sprintf(['No reliable frames found in %s.  ' ...
+                              'Maybe try training on it again?'], ...
+                             [clipBaseName clipExt]), ...
+                     'No reliable frames', ...
+                     'modal');
+          uiwait(h);
+          success=false;
+          return
+        else
+          rethrow(excp);
+        end
       end
       set(hFig,'pointer','arrow');
       drawnow('expose');  drawnow('update');

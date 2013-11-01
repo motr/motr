@@ -74,12 +74,15 @@ set(hFig,'userdata',u);
 fnUpdateGUIStatus(hFig);
 
 % Do the training.
-fnTrain(hFig);
+wasTrainingSuccessful=fnTrain(hFig);
 
-% If we get here, training finished successfully, update the model.
-u=get(hFig,'userdata');
-u.trainStatus=4;
-set(hFig,'userdata',u);
+% If we get here, and training finished successfully, update the model
+% accordingly.
+if wasTrainingSuccessful ,
+  u=get(hFig,'userdata');
+  u.trainStatus=4;
+  set(hFig,'userdata',u);
+end
 
 % sync the view
 fnUpdateGUIStatus(hFig);
