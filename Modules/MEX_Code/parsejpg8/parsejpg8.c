@@ -36,7 +36,15 @@ struct my_error_mgr {
 
 typedef struct my_error_mgr *my_error_ptr;
 
+#ifdef _WIN64
+typedef long long off_t;
+#endif
 
+#ifdef _WIN64
+#define FSEEKO _fseeki64
+#else
+#define FSEEKO fseeko
+#endif
 
 void mexFunction(int nlhs, mxArray *plhs[],
                  int nrhs, const mxArray *prhs[]) {
@@ -50,9 +58,10 @@ void mexFunction(int nlhs, mxArray *plhs[],
   /* see remarks above about longjmp() */
   struct my_error_mgr jerr;
   int current_row;
-  long offset;
+  off_t offset;   /* On Unix, posix file offset type */
   char buffer[JMSG_LENGTH_MAX];
   /* int dims[2]; */
+  /* char message[4096]; */
 
   if (nrhs < 2)
   {
@@ -73,8 +82,17 @@ void mexFunction(int nlhs, mxArray *plhs[],
   strlen = mxGetM(prhs[0]) * mxGetN(prhs[0]) * sizeof(mxChar) + 1;
   filename = (char *) mxCalloc(strlen, sizeof(*filename));
   mxGetString(prhs[0],filename,strlen);  /* First argument is the filename */
-  offset = (long)mxGetScalar(prhs[1]);
+  offset = (off_t)mxGetScalar(prhs[1]);
 
+/*  
+  #ifdef _WIN64
+    sprintf(message,"offset: %lld",offset);
+  #else
+    sprintf(message,"offset: %ld",offset);
+  #endif
+  mexWarnMsgTxt(message);
+*/
+  
 /*
  * Initialize the jpeg library
  */
@@ -105,7 +123,7 @@ void mexFunction(int nlhs, mxArray *plhs[],
     mexErrMsgTxt("Couldn't open file");
   }
   mxFree((void *) filename);
-  fseek(infile,offset,SEEK_SET);
+  FSEEKO(infile,offset,SEEK_SET);
 
 /*
  * Read the jpg header to get info about size and color depth
