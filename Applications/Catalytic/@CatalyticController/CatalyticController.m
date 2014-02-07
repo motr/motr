@@ -83,7 +83,7 @@ properties
   seekmenu
   flipimage_checkbox
   debugbutton
-  playstopbutton
+  playSeqButton
   axes_dtop
   axes_dslider
   axes_drightpanels
@@ -2069,9 +2069,9 @@ methods
   
   
   
-  % --- Executes on button press in playstopbutton.
-  function playstopbuttonTwiddled(self,hObject,eventdata)  %#ok
-    % hObject    handle to playstopbutton (see GCBO)
+  % --- Executes on button press in playSeqButton.
+  function playSeqButtonTwiddled(self,hObject,eventdata)  %#ok
+    % hObject    handle to playSeqButton (see GCBO)
     % eventdata  reserved - to be defined in a future version of MATLAB
     % self    structure with self and user data (see GUIDATA)
     
@@ -3074,7 +3074,7 @@ methods
     % self=guidata(fig);
     
     % get just the relative file name
-    [~,baseName,ext]=fileparts(fileNameAbs);
+    [parentDirNameAbs,baseName,ext]=fileparts(fileNameAbs);
     fileNameRel=[baseName ext];
     
     oldPointer=pointerToWatch(self);
@@ -3086,13 +3086,14 @@ methods
       self.isFileOpen=true;
       self.ctcVersion=ctc.version;
       self.seqs = ctc.seqs;
-      self.moviename = ctc.moviename;
+      self.moviename =  ctc.moviename;
       self.trx = ctc.trx;
       %self.annname = ctc.annname;
       self.params = ctc.params;
       self.originalTrackFileName = ctc.originalTrackFileName;
       self.savename = fileNameAbs;
-      [self.readframe,self.nframes,self.fid] = get_readframe_fcn(self.moviename);
+      movieFileNameAbs=fileNameAbsFromWhatever(self.moviename,parentDirNameAbs);
+      [self.readframe,self.nframes,self.fid] = get_readframe_fcn(movieFileNameAbs);
       
       % get timestamps
       if isfield(self.trx,'timestamps'),
@@ -3793,9 +3794,9 @@ methods
     % splintered from fixerrorsgui 6/23/12 JAB
     
     self.isplaying = true;
-    set(self.playstopbutton,'string','Stop');
+    set(self.playSeqButton,'string','Stop Seq');
     if ~ismac() ,
-      set(self.playstopbutton,'backgroundcolor',[.5,0,0]);
+      set(self.playSeqButton,'backgroundcolor',[.5,0,0]);
     end
     %guidata(hObject,self);
     f0 = max(1,self.seq.frames(1)-10);
@@ -3826,9 +3827,9 @@ methods
     end
     
     self.isplaying = false;
-    set(self.playstopbutton,'string','Play');
+    set(self.playSeqButton,'string','Play Seq');
     if ~ismac() ,
-      set(self.playstopbutton,'backgroundcolor',[0,.5,0]);
+      set(self.playSeqButton,'backgroundcolor',[0,.5,0]);
     end
     %guidata(hObject,self);
   end  % method
@@ -3925,7 +3926,7 @@ methods
     end
     
     % store positions of stuff below the axes
-    self.bottom_tags = {'printbutton','debugbutton','playstopbutton',...
+    self.bottom_tags = {'printbutton','debugbutton','playSeqButton',...
       'displaypanel','frameslider', 'flipimage_checkbox', 'zoomInButton','zoomOutButton'};
     ntags = numel(self.bottom_tags);
     %self.bottom_width_norm = nan(1,ntags);
