@@ -84,6 +84,7 @@ properties
   flipimage_checkbox
   debugbutton
   playSeqButton
+  playButton
   axes_dtop
   axes_dslider
   axes_drightpanels
@@ -170,7 +171,8 @@ properties
   foregroundSign  % +1 if animals are white-on-black, 
                   % -1 if black-on-white, 
                   % 0 if they're just different than background
-  isplaying=false
+  isPlaying=false
+  isPlayingSeq=false
   
   zoomingIn=false
   zoomingOut=false
@@ -870,7 +872,7 @@ methods
     
     restorePointer(self,oldPointer);
     
-    %play(self);
+    %playSeq(self);
   end  % method
   
   
@@ -959,7 +961,7 @@ methods
         
         self.restorePointer(oldPointer);
         
-        %play( self);
+        %playSeq( self);
         break
       end % found a sequence in undo list that was marked 'correct'
     end % for each item in undo list
@@ -2070,16 +2072,36 @@ methods
   
   
   % --- Executes on button press in playSeqButton.
-  function playSeqButtonTwiddled(self,hObject,eventdata)  %#ok
+  function playSeqButtonPressed(self,hObject,eventdata)  %#ok
     % hObject    handle to playSeqButton (see GCBO)
     % eventdata  reserved - to be defined in a future version of MATLAB
     % self    structure with self and user data (see GUIDATA)
     
-    if strcmpi(get(hObject,'string'),'play'),
-      play(self);
+    if self.isPlayingSeq ,
+      % if playing already, stop
+      self.isPlayingSeq = false;
     else
-      self.isplaying = false;
-      % guidata(hObject,self);
+      % otherwise, play sequence
+      self.playSeq();
+    end
+  end  % method
+  
+  
+  
+  
+  
+  % --- Executes on button press in playButton.
+  function playButtonPressed(self,hObject,eventdata)  %#ok
+    % hObject    handle to playSeqButton (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % self    structure with self and user data (see GUIDATA)
+    
+    if self.isPlaying ,
+      % if playing already, stop
+      self.isPlaying = false;
+    else
+      % otherwise, play sequence
+      self.play();
     end
   end  % method
   
@@ -3212,7 +3234,7 @@ methods
     % reset the figure zoom mode
     zoom(self.fig,'reset');
     % Play the first sequence
-    %play(self);
+    %playSeq(self);
     
   end  % method
   
@@ -3789,11 +3811,11 @@ methods
   
   
   % -----------------------------------------------------------------------
-  function play(self)
+  function playSeq(self)
     % play through a sequence
     % splintered from fixerrorsgui 6/23/12 JAB
     
-    self.isplaying = true;
+    self.isPlayingSeq = true;
     set(self.playSeqButton,'string','Stop Seq');
     if ~ismac() ,
       set(self.playSeqButton,'backgroundcolor',[.5,0,0]);
@@ -3802,36 +3824,79 @@ methods
     f0 = max(1,self.seq.frames(1)-10);
     f1 = min(self.nframes,self.seq.frames(end)+10);
     
-    for f = f0:f1,
+    for currentFrame = f0:f1,
       
-      self.f = f;
+      self.f = currentFrame;
       setFrameNumber(self);
       self.plotFrame();
-      drawnow('update');
-      drawnow('expose');
-      %drawnow;
+      %drawnow('update');
+      %drawnow('expose');
+      drawnow;  % have to use full drawnow so that user pressing "stop"
+                % has a chance to get processed
       %self = guidata(hObject);
       
-      if ~self.isplaying,
+      if ~self.isPlayingSeq,
+        % this means the user has pressed the "stop" button
         break;
       end
       
     end
     
-    self.f = f;
+    %self.f = currentFrame;
     
-    if self.isplaying,
+    % if user didn't press stop, set the frame to the first of the seq
+    if self.isPlayingSeq,
       self.f = self.seq.frames(1);
       setFrameNumber(self);
       self.plotFrame();
     end
     
-    self.isplaying = false;
+    self.isPlayingSeq = false;
     set(self.playSeqButton,'string','Play Seq');
     if ~ismac() ,
       set(self.playSeqButton,'backgroundcolor',[0,.5,0]);
     end
     %guidata(hObject,self);
+  end  % method
+
+  
+  
+  % -----------------------------------------------------------------------
+  function play(self)
+    % play to the end, or until stop button is pressed
+    
+    self.isPlaying = true;
+    set(self.playButton,'string','Stop');
+    if ~ismac() ,
+      set(self.playButton,'backgroundcolor',[.5,0,0]);
+    end
+    %guidata(hObject,self);
+    firstFrame = self.f;
+    lastFrame = self.nframes;
+    
+    for currentFrame = firstFrame:lastFrame,
+      
+      self.f = currentFrame;
+      setFrameNumber(self);
+      self.plotFrame();
+      %drawnow('update');
+      %drawnow('expose');
+      drawnow;  % have to use full drawnow so that user pressing "stop"
+                % has a chance to get processed
+      %self = guidata(hObject);
+      
+      if ~self.isPlaying,
+        % this means the user has pressed the "stop" button
+        break;
+      end
+      
+    end
+    
+    self.isPlaying = false;
+    set(self.playButton,'string','Play');
+    if ~ismac() ,
+      set(self.playButton,'backgroundcolor',[0,.5,0]);
+    end
   end  % method
 
   
@@ -3926,7 +3991,7 @@ methods
     end
     
     % store positions of stuff below the axes
-    self.bottom_tags = {'printbutton','debugbutton','playSeqButton',...
+    self.bottom_tags = {'printbutton','debugbutton','playSeqButton','playButton',...
       'displaypanel','frameslider', 'flipimage_checkbox', 'zoomInButton','zoomOutButton'};
     ntags = numel(self.bottom_tags);
     %self.bottom_width_norm = nan(1,ntags);
