@@ -1,9 +1,9 @@
-function fnCreateJob(strMovieFileName, strctMovieInfo, ...
+function fnCreateJob(strMovieFileName, ~, ...
                      aiFrameInterval, strctBootstrap, strAdditionalInfoFile,...
                      strOutputFile, iUID, ...
                      strJobInputFileName,bLearnIdentity)
 
-global g_strctGlobalParam
+global g_strctGlobalParam g_iLogLevel g_bMouseHouse  %#ok
    
 if exist('bLearnIdentity','var') && bLearnIdentity==true
    strctJob.m_sFunction = 'fnLearnMouseIdentity';
@@ -18,17 +18,16 @@ strctJob.m_strctBootstrap = strctBootstrap;
 strctJob.m_strAdditionalInfoFile = strAdditionalInfoFile;
 strctJob.m_strOutputFile = strOutputFile;
 strctJob.m_iUID = iUID;
-strctJob.m_bLearnIdentity = bLearnIdentity;
-[strPath,strFile]=fileparts(strJobInputFileName);
+strctJob.m_bLearnIdentity = bLearnIdentity;  %#ok
+strPath=fileparts(strJobInputFileName);
 if ~exist(strPath,'dir')
     mkdir(strPath);
 end;
 if ~fnGetLogMode(1)
-   global g_iLogLevel;
    g_iLogLevel = 0;
-   save(strJobInputFileName, 'strctJob','g_strctGlobalParam','g_iLogLevel');
+   save(strJobInputFileName, 'strctJob','g_strctGlobalParam','g_iLogLevel','g_bMouseHouse');
 else
-   global g_iLogLevel g_CaptainsLogDir;
-   save(strJobInputFileName, 'strctJob','g_strctGlobalParam','g_iLogLevel','g_CaptainsLogDir');
+   global g_CaptainsLogDir  %#ok
+   save(strJobInputFileName, 'strctJob','g_strctGlobalParam','g_iLogLevel','g_bMouseHouse','g_CaptainsLogDir');
 end
-return;
+return
