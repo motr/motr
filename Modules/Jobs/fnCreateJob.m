@@ -3,6 +3,8 @@ function fnCreateJob(strMovieFileName, ~, ...
                      strOutputFile, iUID, ...
                      strJobInputFileName,bLearnIdentity)
 
+% Create the input file for a single job, save as strJobInputFileName
+  
 global g_strctGlobalParam g_iLogLevel g_bMouseHouse  %#ok
    
 if exist('bLearnIdentity','var') && bLearnIdentity==true
