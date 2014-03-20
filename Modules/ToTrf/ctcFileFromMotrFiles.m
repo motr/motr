@@ -1,5 +1,5 @@
 function ctcFileFromMotrFiles(ctcFileName, ...
-                              seqFileName, ...
+                              videoFileName, ...
                               motrTrackFileName, ...
                               pxPerMm, ...
                               minSuspectPredictionErrorInBodyLengths, ...
@@ -30,7 +30,7 @@ end
 
 % Compute the background frame
 %[medianFrame,medianAbsDiffFrame]=seqMedianFrameFromNonRandomSample(seqFileName);
-backgroundImage=seqMedianFrameFromNonRandomSample(seqFileName);
+backgroundImage=videoMedianFrameFromNonRandomSample(videoFileName);
 
 % Convert the Motr track file (whose name often ends in '_tracks.mat') to
 % a Ctrax/Jaaba-style .trx file
@@ -39,16 +39,16 @@ s=load(motrTrackFileName);
 astrctTrackers=s.astrctTrackers;
 clear('s');
 [meanObservedQuarterMajorAxisInPels,maxObservedQuarterMajorAxisInPels]= ...
-  sizeStatisticsFromShayTrack(astrctTrackers)
+  sizeStatisticsFromShayTrack(astrctTrackers)  %#ok<NOPRT>
 trx=trxFromShayTrack(astrctTrackers);
 
 % Interpolate to get rid of nan's
 trx=interpolateAwayNansInTrx(trx);
 
 % Add frames per second and time stamps, getting from .seq file
-seqInfo=fnReadSeqInfo(seqFileName);
-fps=seqInfo.m_fFPS;  % Hz
-timeStamps=seqInfo.m_afTimestamp;  % seconds
+videoInfo=fnReadVideoInfo(videoFileName);
+fps=videoInfo.m_fFPS;  % Hz
+timeStamps=videoInfo.m_afTimestamp;  % seconds
 nTracks=length(trx);
 for iTrack=1:nTracks
   trx(iTrack).fps=fps;
@@ -212,7 +212,7 @@ minSuspiciousOrientationDirectionMismatchInRadians = minSuspiciousOrientationDir
 % store stuff in a single struct
 ctc.version=1;  % .ctc file version number
 ctc.seqs = seqs;
-ctc.moviename = seqFileName;
+ctc.moviename = videoFileName;
 ctc.trx = trx0;
 %trf.annname = annFileName;
 ctc.ang_dist_wt=65/(pi/2);  % mm/radian, used to convert angle errors to distances,
