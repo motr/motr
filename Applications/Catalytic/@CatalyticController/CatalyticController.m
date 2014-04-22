@@ -179,6 +179,8 @@ properties
   
   ctcVersion  % version of ctc file format
   
+  hextend
+  
   % parameters used in detection of suspicious sequences
   ang_dist_wt
   maxjump  % in pels
@@ -191,7 +193,7 @@ end  % properties
 methods
   function self=CatalyticController()
     % create the figure, position all the widgets
-    self.layout();
+    self.createFigureAndLayOut();
     
     % read inputs
     self.isFileOpen=false;
@@ -264,7 +266,10 @@ methods
     
     % Update the enablement and visibility of the UI
     self.updateControlVisibilityAndEnablement();
-
+    
+    % Update the window title
+    self.updateWindowTitle();
+    
     % Set this now that everything else is set up
     set(self.fig,'WindowButtonMotionFcn',@(source,event)(self.updatePointer()));
     
@@ -330,6 +335,23 @@ methods
     if ~isempty(nFrames) ,
       set(self.frameslider,'max',nFrames,'min',1,'sliderstep',[1,20]/(nFrames-1));
     end
+  end  % method
+  
+  
+  
+  
+  
+  
+  %--------------------------------------------------------------------------
+  function updateWindowTitle(self)
+    if self.isFileOpen ,
+      shortFileName=fileNameRelFromAbs(self.savename);
+      asteriskIfUnsaved=fif(self.needssaving,'*','');
+      title=sprintf('Catalytic (%s%s)',shortFileName,asteriskIfUnsaved);
+    else      
+      title='Catalytic';
+    end
+    setifhg(self.fig,'Name',title);
   end  % method
   
   
@@ -869,6 +891,7 @@ methods
     % guidata(hObject,self);
     
     self.updateControlVisibilityAndEnablement();
+    self.updateWindowTitle();
     
     restorePointer(self,oldPointer);
     
@@ -958,6 +981,7 @@ methods
         % guidata( hObject, self );
         
         self.updateControlVisibilityAndEnablement();
+        self.updateWindowTitle();
         
         self.restorePointer(oldPointer);
         
@@ -1191,6 +1215,7 @@ methods
     self.needssaving = 1;
     % guidata(hObject,self);
     self.updateControlVisibilityAndEnablement();
+    self.updateWindowTitle();    
     self.plotFrame();  % re-draw the current frame
     self.restorePointer(oldPointer);
   end  % method
@@ -1778,6 +1803,7 @@ methods
     fixUpdateFly(self,fly);
     
     self.updateControlVisibilityAndEnablement();
+    self.updateWindowTitle();
     
     self.restorePointer(oldPointer);
   end  % method
@@ -1983,6 +2009,7 @@ methods
     fixUpdateFly(self,fly1);
     
     self.updateControlVisibilityAndEnablement();
+    self.updateWindowTitle();
     
     self.restorePointer(oldPointer);
   end  % method
@@ -2192,6 +2219,8 @@ methods
     
     fixUpdateFly(self,fly);
     self.updateControlVisibilityAndEnablement();
+    self.updateWindowTitle();
+    
     self.restorePointer(oldPointer);
   end  % method
   
@@ -2280,6 +2309,7 @@ methods
     
     fixUpdateFly(self,fly);
     self.updateControlVisibilityAndEnablement();
+    self.updateWindowTitle();    
     self.restorePointer(oldPointer);
   end  % method
   
@@ -2423,6 +2453,7 @@ methods
     
     fixUpdateFly(self,fly);
     self.updateControlVisibilityAndEnablement();
+    self.updateWindowTitle();
     self.restorePointer(oldPointer);
   end  % method
   
@@ -2567,6 +2598,7 @@ methods
       fixUpdateFly(self,fly);
     end
     self.updateControlVisibilityAndEnablement();
+    self.updateWindowTitle();    
     self.restorePointer(oldPointer);
   end  % method
   
@@ -2751,6 +2783,7 @@ methods
     
     % guidata(hObject,self);
     self.updateControlVisibilityAndEnablement();
+    self.updateWindowTitle();
     self.restorePointer(oldPointer);
   end  % method
   
@@ -3005,6 +3038,7 @@ methods
     
     % guidata(hObject,self);
     self.updateControlVisibilityAndEnablement();
+    self.updateWindowTitle();
     self.restorePointer(oldPointer);
   end  % method
   
@@ -3216,7 +3250,7 @@ methods
 %         % backgroundImageAsVector contains pels in row-major order, so
 %         % have to deal with this
       initializeKeyPressFcns(self);
-      
+
       storePanelPositions(self);
     catch excp  %#ok
       restorePointer(self,oldPointer);
@@ -3229,6 +3263,7 @@ methods
     
     % Update the visibility and enablement of controls
     self.updateControlVisibilityAndEnablement();
+    self.updateWindowTitle();
     self.restorePointer(oldPointer);
     
     % reset the figure zoom mode
@@ -3331,6 +3366,7 @@ methods
     self.backgroundImage=[];
     initializeKeyPressFcns(self);
     set(self.mainAxes,'xtick',[],'ytick',[]);
+    self.updateWindowTitle();
     
     storePanelPositions(self);
     
@@ -3342,6 +3378,7 @@ methods
     
     % Update the enablement and visibility of the UI
     self.updateControlVisibilityAndEnablement();
+    self.updateWindowTitle();
     zoom(self.fig,'reset');
   end  % method
   
@@ -3474,6 +3511,7 @@ methods
     self.needssaving = 0;
     %guidata(fig,self);
     self.updateControlVisibilityAndEnablement();
+    self.updateWindowTitle();    
     saved=true;
     self.restorePointer(oldPointer);
   end  % method
