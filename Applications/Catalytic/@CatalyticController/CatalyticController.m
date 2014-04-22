@@ -19,7 +19,7 @@ properties
   colors0
   colororder
   colors
-  f
+  frameIndex
   seqi
   seq
   nselect
@@ -180,6 +180,8 @@ properties
   ctcVersion  % version of ctc file format
   
   hextend
+  extendfly
+  hconnect
   
   % parameters used in detection of suspicious sequences
   ang_dist_wt
@@ -223,7 +225,7 @@ methods
       colorOrderFromNumberOfAnimals(self.nflies);
     
     %self = setSeq(self,[],true);
-    self.f=[];
+    self.frameIndex=[];
     self.seqi=[];
     self.seq=[];
     
@@ -362,7 +364,7 @@ methods
   %--------------------------------------------------------------------------
   function self = plotFirstFrame(self)
     %axes(self.mainAxes);
-    im = self.readframe(self.f);
+    im = self.readframe(self.frameIndex);
     [self.nr,self.nc,self.ncolors] = size(im);
     if ~isempty(self.frameImageGH) && ishandle(self.frameImageGH) ,
       delete(self.frameImageGH);
@@ -538,7 +540,7 @@ methods
       return;
     end
     
-    i = self.trx(fly).off+(self.f);
+    i = self.trx(fly).off+(self.frameIndex);
     self.trx(fly).x(i) = tmp(1,1);
     self.trx(fly).y(i) = tmp(1,2);
     fixUpdateFly(self,fly);
@@ -558,7 +560,7 @@ methods
     end
     x1 = tmp(1,1);
     y1 = tmp(1,2);
-    i = self.trx(fly).off+(self.f);
+    i = self.trx(fly).off+(self.frameIndex);
     
     x = self.trx(fly).x(i);
     y = self.trx(fly).y(i);
@@ -594,7 +596,7 @@ methods
     end
     x3 = tmp(1,1);
     y3 = tmp(1,2);
-    i = self.trx(fly).off+(self.f);
+    i = self.trx(fly).off+(self.frameIndex);
     
     x = self.trx(fly).x(i);
     y = self.trx(fly).y(i);
@@ -636,7 +638,7 @@ methods
     end
     x4 = tmp(1,1);
     y4 = tmp(1,2);
-    i = self.trx(fly).off+(self.f);
+    i = self.trx(fly).off+(self.frameIndex);
     
     x = self.trx(fly).x(i);
     y = self.trx(fly).y(i);
@@ -678,7 +680,7 @@ methods
     end
     x2 = tmp(1,1);
     y2 = tmp(1,2);
-    i = self.trx(fly).off+(self.f);
+    i = self.trx(fly).off+(self.frameIndex);
     
     x = self.trx(fly).x(i);
     y = self.trx(fly).y(i);
@@ -714,7 +716,7 @@ methods
     % Hints: get(hObject,'Value') returns position of slider
     %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
     
-    self.f = round(get(hObject,'value'));
+    self.frameIndex = round(get(hObject,'value'));
     setFrameNumber(self,hObject);
     self.plotFrame();
     % guidata(hObject,self);
@@ -734,16 +736,16 @@ methods
     %        str2double(get(hObject,'String')) returns contents of frameedit as a double
     f = str2double(get(hObject,'String'));
     if isnan(f),
-      set(hObject,'string',num2str(self.f));
+      set(hObject,'string',num2str(self.frameIndex));
       return;
     end
-    self.f = round(f);
-    self.f = max(f,1);
-    self.f = min(f,self.nframes);
-    if self.f ~= f,
-      set(hObject,'string',num2str(self.f));
+    self.frameIndex = round(f);
+    self.frameIndex = max(f,1);
+    self.frameIndex = min(f,self.nframes);
+    if self.frameIndex ~= f,
+      set(hObject,'string',num2str(self.frameIndex));
     end
-    setFrameNumber(self,self.f);
+    setFrameNumber(self,self.frameIndex);
     self.plotFrame();
     % guidata(hObject,self);
     
@@ -1239,18 +1241,18 @@ methods
     oldPointer=self.pointerToWatch();
     
     fly = self.selected;
-    if self.f <= self.trx(fly).firstframe,
-      self.undolist{end+1} = {'delete',self.f,fly,...
+    if self.frameIndex <= self.trx(fly).firstframe,
+      self.undolist{end+1} = {'delete',self.frameIndex,fly,...
         self.trx(fly)};
       DeleteFly(self,fly);
       % remove events involving this fly
       evts_removed = removeFlyEvent(self,fly,-inf,inf);
     else
-      self.undolist{end+1} = {'delete',self.f,fly,...
-        CatalyticController.getPartOfTrack(self.trx(fly),self.f,inf)};
-      self.trx(fly) = CatalyticController.getPartOfTrack(self.trx(fly),1,self.f-1);
+      self.undolist{end+1} = {'delete',self.frameIndex,fly,...
+        CatalyticController.getPartOfTrack(self.trx(fly),self.frameIndex,inf)};
+      self.trx(fly) = CatalyticController.getPartOfTrack(self.trx(fly),1,self.frameIndex-1);
       % remove events involving this fly in the deleted interval
-      evts_removed = removeFlyEvent(self,fly,self.f,inf);
+      evts_removed = removeFlyEvent(self,fly,self.frameIndex,inf);
       setFlySelectedInView(self,fly,false);
       fixUpdateFly(self,fly);
     end
@@ -1435,7 +1437,7 @@ methods
           continue;
         end
         f = self.seqs(i).frames;
-        if f >= self.f,
+        if f >= self.frameIndex,
           continue;
         end
         fly = self.seqs(i).flies;
@@ -1457,8 +1459,8 @@ methods
         return;
       end
       
-      self.lastframe = self.f;
-      self.f = nextnearframe;
+      self.lastframe = self.frameIndex;
+      self.frameIndex = nextnearframe;
       setFrameNumber(self,hObject);
       self.plotFrame();
       
@@ -1475,7 +1477,7 @@ methods
           continue;
         end
         f = self.seqs(i).frames;
-        if f >= self.f,
+        if f >= self.frameIndex,
           continue;
         end
         fly = self.seqs(i).flies;
@@ -1497,8 +1499,8 @@ methods
         return;
       end
       
-      self.lastframe = self.f;
-      self.f = nextnearframe;
+      self.lastframe = self.frameIndex;
+      self.frameIndex = nextnearframe;
       setFrameNumber(self,hObject);
       self.plotFrame();
       
@@ -1535,7 +1537,7 @@ methods
           continue;
         end
         f = self.seqs(i).frames;
-        if f <= self.f,
+        if f <= self.frameIndex,
           continue;
         end
         fly = self.seqs(i).flies;
@@ -1557,8 +1559,8 @@ methods
         return;
       end
       
-      self.lastframe = self.f;
-      self.f = nextnearframe;
+      self.lastframe = self.frameIndex;
+      self.frameIndex = nextnearframe;
       setFrameNumber(self,hObject);
       self.plotFrame();
       
@@ -1575,7 +1577,7 @@ methods
           continue;
         end
         f = self.seqs(i).frames;
-        if f <= self.f,
+        if f <= self.frameIndex,
           continue;
         end
         fly = self.seqs(i).flies;
@@ -1597,8 +1599,8 @@ methods
         return;
       end
       
-      self.lastframe = self.f;
-      self.f = nextnearframe;
+      self.lastframe = self.frameIndex;
+      self.frameIndex = nextnearframe;
       setFrameNumber(self,hObject);
       self.plotFrame();
       
@@ -1636,7 +1638,7 @@ methods
     %        str2double(get(hObject,'String')) returns contents of nframesplotedit as a double
     v = str2double(get(hObject,'string'));
     if isempty(v),
-      set(hObject,'string',num2str(self.f));
+      set(hObject,'string',num2str(self.frameIndex));
     else
       self.nframesplot = v;
       for fly = 1:self.nflies,
@@ -1706,7 +1708,7 @@ methods
       errordlg('Please select fly track to interpolate first.','No Fly Selected');
       return;
     end
-    if ~isalive(self.trx(self.selected),self.f),
+    if ~isalive(self.trx(self.selected),self.frameIndex),
       errordlg('Selected fly is not alive in current frame!','Bad Selection');
       return;
     end
@@ -1714,14 +1716,14 @@ methods
     self.interpolatefly = self.selected;
     self.nselect = 0;
     self.selected = [];
-    self.interpolatefirstframe = self.f;
+    self.interpolatefirstframe = self.frameIndex;
     set(self.interpolatedoitbutton,'enable','on');
     set(self.interpolatefirstframebutton,'enable','off');
-    set(self.interpolatefirstframebutton,'string',sprintf('First = %d',self.f));
+    set(self.interpolatefirstframebutton,'string',sprintf('First = %d',self.frameIndex));
     
     % draw the fly
     fly = self.interpolatefly;
-    i = self.trx(fly).off+(self.f);
+    i = self.trx(fly).off+(self.frameIndex);
     x = self.trx(fly).x(i);
     y = self.trx(fly).y(i);
     a = 2*self.trx(fly).a(i);
@@ -1745,7 +1747,7 @@ methods
     % eventdata  reserved - to be defined in a future version of MATLAB
     % self    structure with self and user data (see GUIDATA)
     
-    if ~isalive(self.trx(self.interpolatefly),self.f),
+    if ~isalive(self.trx(self.interpolatefly),self.frameIndex),
       errordlg('Selected fly is not alive in current frame!','Bad Selection');
       return;
     end
@@ -1756,7 +1758,7 @@ methods
     self.selected = [];
     
     f0 = self.interpolatefirstframe;
-    f1 = self.f;
+    f1 = self.frameIndex;
     if f0 > f1,
       tmp = f0; f0 = f1; f1 = tmp;
     end
@@ -1842,7 +1844,7 @@ methods
       errordlg('Please select fly track to extend first.','No Fly Selected');
       return;
     end
-    if ~isalive(self.trx(self.selected),self.f),
+    if ~isalive(self.trx(self.selected),self.frameIndex),
       errordlg('Selected fly is not alive in current frame!','Bad Selection');
       return;
     end
@@ -1855,7 +1857,7 @@ methods
     
     % draw the fly
     fly = self.extendfly;
-    i = self.trx(fly).off+(self.f);
+    i = self.trx(fly).off+(self.frameIndex);
     x = self.trx(fly).x(i);
     y = self.trx(fly).y(i);
     a = 2*self.trx(fly).a(i);
@@ -1886,7 +1888,7 @@ methods
     
     fly2 = self.selected;
     
-    if ~isalive(self.trx(fly2),self.f),
+    if ~isalive(self.trx(fly2),self.frameIndex),
       errordlg('Selected fly is not alive in current frame!','Bad Selection');
       return;
     end
@@ -1899,7 +1901,7 @@ methods
     self.nselect = 0;
     
     f1 = self.connectfirstframe;
-    f2 = self.f;
+    f2 = self.frameIndex;
     fly1 = self.connectfirstfly;
     
     if f1 > f2,
@@ -2066,21 +2068,21 @@ methods
       errordlg('Please select fly track to connect first.','No Fly Selected');
       return;
     end
-    if ~isalive(self.trx(self.selected),self.f),
+    if ~isalive(self.trx(self.selected),self.frameIndex),
       errordlg('Selected fly is not alive in current frame!','Bad Selection');
       return;
     end
     self.connectfirstfly(end) = self.selected;
     self.nselect = 1;
     self.selected = [];
-    self.connectfirstframe = self.f;
+    self.connectfirstframe = self.frameIndex;
     set(self.connectdoitbutton,'enable','on');
     set(self.connectfirstflybutton,'enable','off');
-    set(self.connectfirstflybutton,'string',sprintf('First = %d',self.f));
+    set(self.connectfirstflybutton,'string',sprintf('First = %d',self.frameIndex));
     
     % draw the fly
     fly = self.connectfirstfly;
-    i = self.trx(fly).off+(self.f);
+    i = self.trx(fly).off+(self.frameIndex);
     x = self.trx(fly).x(i);
     y = self.trx(fly).y(i);
     a = 2*self.trx(fly).a(i);
@@ -2142,7 +2144,7 @@ methods
     % eventdata  reserved - to be defined in a future version of MATLAB
     % self    structure with self and user data (see GUIDATA)
     
-    if isalive(self.trx(self.extendfly),self.f),
+    if isalive(self.trx(self.extendfly),self.frameIndex),
       errordlg('Selected fly is alive in current frame!','Bad Selection');
       return;
     end
@@ -2152,7 +2154,7 @@ methods
     setFlySelectedInView(self,self.extendfly,false);
     self.selected = [];
     
-    f = self.f;
+    f = self.frameIndex;
     fly = self.extendfly;
     
     % save to undo list
@@ -2259,8 +2261,8 @@ methods
     
     oldPointer=self.pointerToWatch();
     
-    f0 = min(self.f,self.autotrackframe);
-    f1 = max(self.f,self.autotrackframe);
+    f0 = min(self.frameIndex,self.autotrackframe);
+    f1 = max(self.frameIndex,self.autotrackframe);
     
     setFlySelectedInView(self,self.autotrackfly,false);
     self.selected = [];
@@ -2275,16 +2277,16 @@ methods
     self.stoptracking = false;
     
     % track
-    seq.flies = fly;
-    seq.frames = f0:min(f1,self.trx(fly).endframe);
+    sequence.flies = fly;
+    sequence.frames = f0:min(f1,self.trx(fly).endframe);
     if get(self.showtrackingbutton,'value')
-      zoomInOnSeq(self,seq);
+      zoomInOnSeq(self,sequence);
     end
     self.stoptracking = false;
     self.track(fly,f0,f1);
     
     if ~isempty( self.trackingstoppedframe )
-      %    self.f = self.trackingstopped;
+      %    self.frameIndex = self.trackingstopped;
       %rmfield( self, 'trackingstoppedframe' );
       self.trackingstoppedframe=[];
       %self=rmfield( self, 'trackingstoppedframe' );
@@ -2354,12 +2356,12 @@ methods
       errordlg('Please select fly track to track first.','No Fly Selected');
       return;
     end
-    if ~isalive(self.trx(self.selected),self.f),
+    if ~isalive(self.trx(self.selected),self.frameIndex),
       errordlg('Selected fly is not alive in current frame!','Bad Selection');
       return;
     end
     self.autotrackfly = self.selected;
-    self.autotrackframe = self.f;
+    self.autotrackframe = self.frameIndex;
     
     self.nselect = 0;
     self.selected = [];
@@ -2368,7 +2370,7 @@ methods
     set(self.autotracksettingsbutton,'enable','on');
     % draw the fly
     fly = self.autotrackfly;
-    i = self.trx(fly).off+(self.f);
+    i = self.trx(fly).off+(self.frameIndex);
     x = self.trx(fly).x(i);
     y = self.trx(fly).y(i);
     a = 2*self.trx(fly).a(i);
@@ -2418,7 +2420,7 @@ methods
     % eventdata  reserved - to be defined in a future version of MATLAB
     % self    structure with self and user data (see GUIDATA)
     
-    if ~isalive(self.trx(self.flipfly),self.f),
+    if ~isalive(self.trx(self.flipfly),self.frameIndex),
       errordlg('Selected fly is not alive in current frame','Bad Selection');
       return;
     end
@@ -2428,7 +2430,7 @@ methods
     setFlySelectedInView(self,self.flipfly,false);
     self.selected = [];
     
-    f = self.f;
+    f = self.frameIndex;
     fly = self.flipfly;
     
     % save to undo list
@@ -2493,12 +2495,12 @@ methods
       errordlg('Please select fly track to flip first.','No Fly Selected');
       return;
     end
-    if ~isalive(self.trx(self.selected),self.f),
+    if ~isalive(self.trx(self.selected),self.frameIndex),
       errordlg('Selected fly is not alive in current frame!','Bad Selection');
       return;
     end
     self.flipfly = self.selected;
-    self.flipframe = self.f;
+    self.flipframe = self.frameIndex;
     self.nselect = 0;
     self.selected = [];
     set(self.flipdoitbutton,'enable','on');
@@ -2506,7 +2508,7 @@ methods
     
     % draw the fly
     fly = self.flipfly;
-    i = self.trx(fly).off+(self.f);
+    i = self.trx(fly).off+(self.frameIndex);
     x = self.trx(fly).x(i);
     y = self.trx(fly).y(i);
     a = 2*self.trx(fly).a(i);
@@ -2549,8 +2551,8 @@ methods
     
     oldPointer=self.pointerToWatch();
     
-    f0 = min(self.f,self.manytrackframe);
-    f1 = max(self.f,self.manytrackframe);
+    f0 = min(self.frameIndex,self.manytrackframe);
+    f1 = max(self.frameIndex,self.manytrackframe);
     
     for fly = self.manytrackflies(:)',
       setFlySelectedInView(self,fly,false);
@@ -2572,10 +2574,10 @@ methods
     self.stoptracking = false;
     
     % track
-    seq.flies = flies;
-    seq.frames = f0:min(f1,[self.trx(flies).endframe]);
+    sequence.flies = flies;
+    sequence.frames = f0:min(f1,[self.trx(flies).endframe]);
     if get(self.manytrackshowtrackingbutton,'value')
-      self.zoomInOnSeq(seq);
+      self.zoomInOnSeq(sequence);
     end
     self.stoptracking = false;
     self.track(flies,f0,f1);
@@ -2647,15 +2649,15 @@ methods
       return;
     end
     for fly = self.selected(:)',
-      if ~isalive(self.trx(fly),self.f),
+      if ~isalive(self.trx(fly),self.frameIndex),
         errordlg('One of the selected flies is not alive in current frame!','Bad Selection');
         return;
       end
     end
     self.autotrackfly = self.selected;
-    self.autotrackframe = self.f;
+    self.autotrackframe = self.frameIndex;
     self.manytrackflies = self.selected;
-    self.manytrackframe = self.f;
+    self.manytrackframe = self.frameIndex;
     
     self.nselect = 0;
     self.selected = [];
@@ -2665,7 +2667,7 @@ methods
     % draw the fly
     self.hmanytrack = [];
     for fly = self.manytrackflies(:)',
-      i = self.trx(fly).off+(self.f);
+      i = self.trx(fly).off+(self.frameIndex);
       x = self.trx(fly).x(i);
       y = self.trx(fly).y(i);
       a = 2*self.trx(fly).a(i);
@@ -2727,9 +2729,9 @@ methods
     for fly = 1:length( self.trx )
       new_id = max( [self.trx(fly).id + 1, new_id] );
       if new_timestamp == -1 && ...
-          self.trx(fly).firstframe <= self.f && ...
-          self.trx(fly).endframe >= self.f
-        new_timestamp = self.trx(fly).timestamps(self.trx(fly).firstframe + self.f - 1);
+          self.trx(fly).firstframe <= self.frameIndex && ...
+          self.trx(fly).endframe >= self.frameIndex
+        new_timestamp = self.trx(fly).timestamps(self.trx(fly).firstframe + self.frameIndex - 1);
       end
     end
     
@@ -2737,9 +2739,9 @@ methods
     fly = length( self.trx ) + 1;
     self.trx(fly).id = new_id;
     self.trx(fly).timestamps = new_timestamp;
-    self.trx(fly).firstframe = self.f;
+    self.trx(fly).firstframe = self.frameIndex;
     self.trx(fly).off = -self.trx(fly).firstframe + 1;
-    self.trx(fly).endframe = self.f;
+    self.trx(fly).endframe = self.frameIndex;
     self.trx(fly).nframes = 1;
     self.trx(fly).moviename = self.trx(1).moviename;
     self.trx(fly).arena = self.trx(1).arena;
@@ -2903,18 +2905,18 @@ methods
       
       case 'rightarrow',
         
-        if self.f < self.nframes,
-          self.f = self.f+1;
-          setFrameNumber(self,self.f);
+        if self.frameIndex < self.nframes,
+          self.frameIndex = self.frameIndex+1;
+          setFrameNumber(self,self.frameIndex);
           self.plotFrame();
           % guidata(hObject,self);
         end
         
       case 'leftarrow',
         
-        if self.f > 1,
-          self.f = self.f-1;
-          setFrameNumber(self,self.f);
+        if self.frameIndex > 1,
+          self.frameIndex = self.frameIndex-1;
+          setFrameNumber(self,self.frameIndex);
           self.plotFrame();
           % guidata(hObject,self);
         end
@@ -2954,7 +2956,7 @@ methods
     
     fly1 = self.selected(1);
     fly2 = self.selected(2);
-    f = self.f;
+    f = self.frameIndex;
     
     if ~isalive(self.trx(fly1),f) || ~isalive(self.trx(fly2),f),
       errordlg('Both flies must be alive in the selected frame.',...
@@ -2965,16 +2967,16 @@ methods
     self.swapfly = self.selected;
     self.nselect = 0;
     %self.selected = [];
-    self.swapfirstframe = self.f;
+    self.swapfirstframe = self.frameIndex;
     set(self.swapdoitbutton,'enable','on');
     set(self.swapfirstframebutton,'enable','off');
-    set(self.swapfirstframebutton,'string',sprintf('First = %d',self.f));
+    set(self.swapfirstframebutton,'string',sprintf('First = %d',self.frameIndex));
     
     % draw the flies to be swapped with dashed lines
     self.hswap=nan([2 1]);
     for j=1:2
       fly = self.swapfly(j);
-      i = self.trx(fly).off+(self.f);
+      i = self.trx(fly).off+(self.frameIndex);
       x = self.trx(fly).x(i);
       y = self.trx(fly).y(i);
       a = 2*self.trx(fly).a(i);
@@ -3007,7 +3009,7 @@ methods
     
     fly1 = self.selected(1);
     fly2 = self.selected(2);
-    f = self.f;
+    f = self.frameIndex;
     
     if ~isalive(self.trx(fly1),f) || ~isalive(self.trx(fly2),f),
       errordlg('Both flies must be alive in the selected frame.',...
@@ -3026,9 +3028,9 @@ methods
     setFlySelectedInView(self,fly2,false);
     self.nselect = 0;
     self.selected = [];
-    hswap=self.hswap;
-    hswap=hswap(ishandle(hswap));
-    delete(hswap);
+    hswapTemp=self.hswap;
+    hswapTemp=hswapTemp(ishandle(hswapTemp));
+    delete(hswapTemp);
     self.hswap=[];
     set(self.swappanel,'visible','off');
     CatalyticController.enablePanel(self.editpanel,'on');
@@ -3333,7 +3335,7 @@ methods
       colorOrderFromNumberOfAnimals(self.nflies);
     
     %setSeq(self,[],true);
-    self.f=[];
+    self.frameIndex=[];
     self.seqi=[];
     self.seq=[];
     
@@ -3550,49 +3552,49 @@ methods
   
   % -----------------------------------------------------------------------
   function updateControlVisibilityAndEnablement(self)    
-    fig=self.fig;
+    theFigure=self.fig;
     
     % Extract model variables we'll need
-    isFileOpen=self.isFileOpen;
+    isFileOpen=self.isFileOpen; 
     thereAreUnsavedChanges=self.needssaving;
     editMode=self.editMode;  % the current editing mode, or empty if not in an editing mode
     
     % As a first pass, enable/disable uicontrols depending on isFileOpen
-    controls=findall(fig,'type','uicontrol');
-    set(controls,'enable',onIff(isFileOpen));
+    controls=findall(theFigure,'type','uicontrol');
+    set(controls,'enable',onIff(isFileOpen)); 
     
     % Now refine things based on other settings
     
     % zoom buttons
-    set(self.zoomInButton ,'enable',onIff(isFileOpen));
-    set(self.zoomOutButton,'enable',onIff(isFileOpen));
+    set(self.zoomInButton ,'enable',onIff(isFileOpen)); 
+    set(self.zoomOutButton,'enable',onIff(isFileOpen));  
 
     % File menu item enablement
-    set(self.fileMenuOpenItem ,'enable',onIff(~isFileOpen));
-    set(self.fileMenuCloseItem,'enable',onIff( isFileOpen));
+    set(self.fileMenuOpenItem ,'enable',onIff(~isFileOpen)); 
+    set(self.fileMenuCloseItem,'enable',onIff( isFileOpen)); 
     set(self.fileMenuSaveItem,'enable',onIff(isFileOpen&&thereAreUnsavedChanges));
-    set(self.fileMenuSaveAsItem,'enable',onIff(isFileOpen));
-    set(self.editMenuUndoItem,'enable',onIff(isFileOpen&&isempty(editMode)&&~isempty(self.undolist)));
+    set(self.fileMenuSaveAsItem,'enable',onIff(isFileOpen));  
+    set(self.editMenuUndoItem,'enable',onIff(isFileOpen&&isempty(editMode)&&~isempty(self.undolist)));  
     
     % Buttons that are always visible
     %set(self.quitbutton,'enable','on');  % can always quit
     %set(self.savebutton,'enable',onIff(isFileOpen&&thereAreUnsavedChanges));
     
     % Set the enablement of things in the edit tools panel
-    set(self.editPopupMenu  ,'enable',onIff(isFileOpen&&isempty(editMode)));
-    set(self.gobutton  ,'enable',onIff(isFileOpen&&isempty(editMode)));
-    set(self.undobutton,'enable',onIff(isFileOpen&&isempty(editMode)&&~isempty(self.undolist)));
+    set(self.editPopupMenu  ,'enable',onIff(isFileOpen&&isempty(editMode)));  
+    set(self.gobutton  ,'enable',onIff(isFileOpen&&isempty(editMode)));  
+    set(self.undobutton,'enable',onIff(isFileOpen&&isempty(editMode)&&~isempty(self.undolist)));  
     
     % Set the visibility of the various editing panels, based on the edit mode
-    set(self.deletepanel,'visible',onIff(strcmpi(editMode,'delete track...')));
-    set(self.interpolatepanel,'visible',onIff(strcmpi(editMode,'interpolate...')));
-    set(self.connectpanel,'visible',onIff(strcmpi(editMode,'connect tracks...')));
-    set(self.swappanel,'visible',onIff(strcmpi(editMode,'swap identities...')));
-    set(self.extendpanel,'visible',onIff(strcmpi(editMode,'extend track...')));
-    set(self.autotrackpanel,'visible',onIff(strcmpi(editMode,'auto-track...')));
-    set(self.flippanel,'visible',onIff(strcmpi(editMode,'flip orientation...')));
-    set(self.manytrackpanel,'visible',onIff(strcmpi(editMode,'auto-track multiple...')));
-    set(self.addnewtrackpanel,'visible',onIff(strcmpi(editMode,'add new track...')));
+    set(self.deletepanel,'visible',onIff(strcmpi(editMode,'delete track...')));  
+    set(self.interpolatepanel,'visible',onIff(strcmpi(editMode,'interpolate...')));  
+    set(self.connectpanel,'visible',onIff(strcmpi(editMode,'connect tracks...')));  
+    set(self.swappanel,'visible',onIff(strcmpi(editMode,'swap identities...')));  
+    set(self.extendpanel,'visible',onIff(strcmpi(editMode,'extend track...')));  
+    set(self.autotrackpanel,'visible',onIff(strcmpi(editMode,'auto-track...')));  
+    set(self.flippanel,'visible',onIff(strcmpi(editMode,'flip orientation...')));  
+    set(self.manytrackpanel,'visible',onIff(strcmpi(editMode,'auto-track multiple...')));  
+    set(self.addnewtrackpanel,'visible',onIff(strcmpi(editMode,'add new track...')));  
     
     %
     % Set the enablement of various edit panel buttons
@@ -3602,7 +3604,7 @@ methods
     set(self.deletedoitbutton, ...
         'enable', ...
           onIff(strcmpi(editMode,'delete track...') && ...
-          (length(self.selected)==1)));
+          (length(self.selected)==1))); %#ok<*PROP>
 
     % swap ID panel
     set(self.swapfirstframebutton, ...
@@ -3717,39 +3719,39 @@ methods
     end
     
     if hObject ~= self.frameslider,
-      if ~isempty(self.f) ,
-        set(self.frameslider,'Value',self.f);
+      if ~isempty(self.frameIndex) ,
+        set(self.frameslider,'Value',self.frameIndex);
       end
     end
     if hObject ~= self.frameedit,
-      set(self.frameedit,'string',num2str(self.f));
+      set(self.frameedit,'string',num2str(self.frameIndex));
     end
-    if isempty(self.f) || isempty(self.seq)
+    if isempty(self.frameIndex) || isempty(self.seq)
       set(self.frameofseqtext,'string','', ...
         'backgroundcolor',get(self.fig,'color'),...
         'foregroundcolor',[0 0 0]);
-    elseif self.f < self.seq.frames(1),
+    elseif self.frameIndex < self.seq.frames(1),
       set(self.frameofseqtext,'string','Before Sequence','backgroundcolor',[1,0,0],...
         'foregroundcolor',[1,1,1]);
-    elseif self.f > self.seq.frames(end),
+    elseif self.frameIndex > self.seq.frames(end),
       set(self.frameofseqtext,'string','After Sequence','backgroundcolor',[1,0,0],...
         'foregroundcolor',[1,1,1]);
-    elseif self.f == self.seq.frames(1),
+    elseif self.frameIndex == self.seq.frames(1),
       set(self.frameofseqtext,'string','Frame of Seq: 1','backgroundcolor',[0,0,1],...
         'foregroundcolor',[1,1,1]);
-    elseif self.f == self.seq.frames(end),
+    elseif self.frameIndex == self.seq.frames(end),
       set(self.frameofseqtext,'string',...
-        sprintf('Frame of Seq: %d',self.f-self.seq.frames(1)+1),...
+        sprintf('Frame of Seq: %d',self.frameIndex-self.seq.frames(1)+1),...
         'backgroundcolor',[1,1,0]/2,'foregroundcolor',[1,1,1]);
     else
       set(self.frameofseqtext,'string',...
-        sprintf('Frame of Seq: %d',self.f-self.seq.frames(1)+1),...
+        sprintf('Frame of Seq: %d',self.frameIndex-self.seq.frames(1)+1),...
         'backgroundcolor',[.7,.7,.7],'foregroundcolor',[0,0,0]);
     end
-    if isempty(self.f) || isempty(self.seq)
+    if isempty(self.frameIndex) || isempty(self.seq)
       set(self.suspframetext,'string','Susp: --');
     else
-      i = find(self.seq.frames == self.f);
+      i = find(self.seq.frames == self.frameIndex);
       if isempty(i),
         set(self.suspframetext,'string','Susp: --');
       else
@@ -3758,7 +3760,7 @@ methods
     end
     
     if ~isempty(self.motionobj),
-      if ~isalive(self.trx(self.motionobj{2}),self.f),
+      if ~isalive(self.trx(self.motionobj{2}),self.frameIndex),
         self.motionobj = [];
       end
     end
@@ -3773,7 +3775,7 @@ methods
     
     self.seqi = seqi;
     self.seq = self.seqs(seqi);
-    self.f = self.seq.frames(1);
+    self.frameIndex = self.seq.frames(1);
     self.nselect = 0;
     self.selected = [];
     set(self.errnumbertext,'string',sprintf('Error: %d/%d',seqi,length(self.seqs)));
@@ -3864,7 +3866,7 @@ methods
     
     for currentFrame = f0:f1,
       
-      self.f = currentFrame;
+      self.frameIndex = currentFrame;
       setFrameNumber(self);
       self.plotFrame();
       %drawnow('update');
@@ -3880,11 +3882,11 @@ methods
       
     end
     
-    %self.f = currentFrame;
+    %self.frameIndex = currentFrame;
     
     % if user didn't press stop, set the frame to the first of the seq
     if self.isPlayingSeq,
-      self.f = self.seq.frames(1);
+      self.frameIndex = self.seq.frames(1);
       setFrameNumber(self);
       self.plotFrame();
     end
@@ -3909,12 +3911,12 @@ methods
       set(self.playButton,'backgroundcolor',[.5,0,0]);
     end
     %guidata(hObject,self);
-    firstFrame = self.f;
+    firstFrame = self.frameIndex;
     lastFrame = self.nframes;
     
     for currentFrame = firstFrame:lastFrame,
       
-      self.f = currentFrame;
+      self.frameIndex = currentFrame;
       setFrameNumber(self);
       self.plotFrame();
       %drawnow('update');
@@ -4096,9 +4098,9 @@ methods
       return
     end
     
-    ii = self.trx(fly).off+(self.f);
+    ii = self.trx(fly).off+(self.frameIndex);
     
-    if isalive(self.trx(fly),self.f)
+    if isalive(self.trx(fly),self.frameIndex)
       setFlyVisible(self,fly,'on');
       i = ii;
     else
@@ -4268,7 +4270,7 @@ methods
     % plot a single video frame
     % splintered from fixerrorsgui 6/21/12 JAB
     
-    im = self.readframe(self.f);
+    im = self.readframe(self.frameIndex);
 %     if( self.doFlipUpDown )
 %       for channel = 1:size( im, 3 )
 %         im(:,:,channel) = flipud( im(:,:,channel) );
@@ -4751,8 +4753,8 @@ methods
           self.trx(iFly).timestamps(j) = self.timestamps(iFrame);
         end
       end
-      self.f = iFrame;
-      if self.trx(iFly).endframe < self.f
+      self.frameIndex = iFrame;
+      if self.trx(iFly).endframe < self.frameIndex
         self.trx(iFly).endframe = iFrame;
       end
       %guidata(self.fig,self);
@@ -4968,7 +4970,7 @@ methods
   
   % -----------------------------------------------------------------------
   function value = getCurrentFrame(self)
-    value=self.readframe(self.f);
+    value=self.readframe(self.frameIndex);
   end
 
   
@@ -5007,7 +5009,11 @@ methods (Static=true)
         trk.timestamps = trk.timestamps(i0:i1);
       else
         warning( 'track timestamps are no longer accurate' )
-        fprintf( 1, 'something strange is going on here --\n   subsampling track from %d to %d but only %d timestamps present\n', i0, i1, length( trk.timestamps ) );
+        fprintf(1, ...
+                'something strange is going on here --\n   subsampling track from %d to %d but only %d timestamps present\n', ...
+                i0, ...
+                i1, ...
+                length( trk.timestamps ) );
       end
     end
     %trk.f2i = @(f) f - trk.firstframe + 1;
@@ -5019,11 +5025,11 @@ methods (Static=true)
   function enablePanel(h,v)
     % set the enabled state for a handle and all its children
     % splintered from fixerrorsgui 6/23/12 JAB
-    children = get(h,'children');
-    for hchild = children,
+    panelChildren = get(h,'children');
+    for panelChild = panelChildren ,
       try
-        set(hchild,'enable',v);
-      catch  %#ok
+        set(panelChild,'enable',v);
+      catch
       end
     end
   end  % method
