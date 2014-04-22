@@ -62,6 +62,7 @@ properties
   addnewtrackpanel
   interpolatepanel
   deletepanel
+  deleteAtStartpanel
   swappanel
   seqinfopanel
   frameinfopanel
@@ -117,6 +118,8 @@ properties
   cancelinterpolatebutton
   deletedoitbutton
   deletecancelbutton
+  deleteAtStartdoitbutton
+  deleteAtStartcancelbutton
   renamecancelbutton
   backbutton
   sortbymenu
@@ -1233,28 +1236,31 @@ methods
     % self    structure with self and user data (see GUIDATA)
     
     if isempty( self.selected )|| self.selected == 0,
-      errordlg('You must first select a fly track to delete. See Delete Track Instructions Panel',...
-        'No Fly Selected');
+      errordlg('You must first select a fly track. See Delete Track Instructions Panel',...
+               'No Fly Selected');
       return;
     end
     
     oldPointer=self.pointerToWatch();
     
-    fly = self.selected;
-    if self.frameIndex <= self.trx(fly).firstframe,
-      self.undolist{end+1} = {'delete',self.frameIndex,fly,...
-        self.trx(fly)};
-      DeleteFly(self,fly);
+    iAnimal = self.selected;
+    if self.frameIndex < self.trx(iAnimal).firstframe,
+      self.undolist{end+1} = {'delete', self.frameIndex, iAnimal, self.trx(iAnimal)};
+      DeleteFly(self,iAnimal);
       % remove events involving this fly
-      evts_removed = removeFlyEvent(self,fly,-inf,inf);
+      evts_removed = removeFlyEvent(self,iAnimal,-inf,inf);
     else
-      self.undolist{end+1} = {'delete',self.frameIndex,fly,...
-        CatalyticController.getPartOfTrack(self.trx(fly),self.frameIndex,inf)};
-      self.trx(fly) = CatalyticController.getPartOfTrack(self.trx(fly),1,self.frameIndex-1);
+      self.undolist{end+1} = {'delete', ...
+                              self.frameIndex, ...
+                              iAnimal,...
+                              CatalyticController.getPartOfTrack(self.trx(iAnimal), ...
+                              self.frameIndex, ...
+                              inf)};
+      self.trx(iAnimal) = CatalyticController.getPartOfTrack(self.trx(iAnimal),1,self.frameIndex);
       % remove events involving this fly in the deleted interval
-      evts_removed = removeFlyEvent(self,fly,self.frameIndex,inf);
-      setFlySelectedInView(self,fly,false);
-      fixUpdateFly(self,fly);
+      evts_removed = removeFlyEvent(self,iAnimal,self.frameIndex+1,inf);
+      setFlySelectedInView(self,iAnimal,false);
+      fixUpdateFly(self,iAnimal);
     end
     self.undolist{end}{end+1} = evts_removed;
     
@@ -1266,6 +1272,7 @@ methods
     set(self.deletepanel,'visible','off');
     % guidata(hObject,self);
     self.updateControlVisibilityAndEnablement();
+    self.updateWindowTitle();
     self.restorePointer(oldPointer);
   end  % method
   
@@ -1282,6 +1289,69 @@ methods
     currentEditModeCancelled(self)
   end  % method
   
+  
+  
+  
+  
+  % --- Executes on button press in deleteAtStartdoitbutton.
+  function deleteAtStartdoitbuttonTwiddled(self,hObject,eventdata)  %#ok
+    % hObject    handle to deleteAtStartdoitbutton (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % self    structure with self and user data (see GUIDATA)
+    
+    if isempty( self.selected )|| self.selected == 0,
+      errordlg('You must first select a fly track. See Delete Track Instructions Panel',...
+               'No Fly Selected');
+      return;
+    end
+    
+    oldPointer=self.pointerToWatch();
+    
+    iAnimal = self.selected;
+    if self.frameIndex > self.trx(iAnimal).endframe,
+      self.undolist{end+1} = {'deleteAtStart',self.frameIndex,iAnimal,self.trx(iAnimal)};
+      DeleteFly(self,iAnimal);
+      % remove events involving this fly
+      evts_removed = removeFlyEvent(self,iAnimal,-inf,inf);
+    else
+      self.undolist{end+1} = {'deleteAtStart', ...
+                              self.frameIndex, ...
+                              iAnimal, ...
+                              CatalyticController.getPartOfTrack(self.trx(iAnimal), ...
+                                                                 -inf, ...
+                                                                 self.frameIndex-1)};
+      self.trx(iAnimal) = CatalyticController.getPartOfTrack(self.trx(iAnimal),self.frameIndex,self.nframes);
+      % remove events involving this fly in the deleted interval
+      evts_removed = removeFlyEvent(self,iAnimal,-inf,self.frameIndex-1);
+      setFlySelectedInView(self,iAnimal,false);
+      fixUpdateFly(self,iAnimal);
+    end
+    self.undolist{end}{end+1} = evts_removed;
+    
+    self.editMode='';
+    self.nselect = 0;
+    self.selected = [];
+    self.needssaving = 1;
+    CatalyticController.enablePanel(self.editpanel,'on');
+    set(self.deleteAtStartpanel,'visible','off');
+    % guidata(hObject,self);
+    self.updateControlVisibilityAndEnablement();
+    self.updateWindowTitle();    
+    self.restorePointer(oldPointer);
+  end  % method
+  
+  
+  
+  
+  
+  % --- Executes on button press in deleteAtStartcancelbutton.
+  function deleteAtStartcancelbuttonTwiddled(self,hObject,eventdata)  %#ok
+    % hObject    handle to deleteAtStartcancelbutton (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % self    structure with self and user data (see GUIDATA)
+    
+    currentEditModeCancelled(self)
+  end  % method
   
   
   
@@ -1352,8 +1422,10 @@ methods
     CatalyticController.enablePanel(self.editpanel,'off');
     self.nselect = 1;
     self.selected = [];
-    if strcmpi(s,'delete track...'),
+    if strcmpi(s,'delete end of track...'),
       set(self.deletepanel,'visible','on');
+    elseif strcmpi(s,'delete start of track...'),
+      set(self.deleteAtStartpanel,'visible','on');
     elseif strcmpi(s,'interpolate...'),
       set(self.interpolatepanel,'visible','on');
       self.interpolatefirstframe = -1;
@@ -3586,7 +3658,8 @@ methods
     set(self.undobutton,'enable',onIff(isFileOpen&&isempty(editMode)&&~isempty(self.undolist)));  
     
     % Set the visibility of the various editing panels, based on the edit mode
-    set(self.deletepanel,'visible',onIff(strcmpi(editMode,'delete track...')));  
+    set(self.deletepanel,'visible',onIff(strcmpi(editMode,'delete end of track...')));  
+    set(self.deleteAtStartpanel,'visible',onIff(strcmpi(editMode,'delete start of track...')));  
     set(self.interpolatepanel,'visible',onIff(strcmpi(editMode,'interpolate...')));  
     set(self.connectpanel,'visible',onIff(strcmpi(editMode,'connect tracks...')));  
     set(self.swappanel,'visible',onIff(strcmpi(editMode,'swap identities...')));  
@@ -3603,7 +3676,13 @@ methods
     % delete panel
     set(self.deletedoitbutton, ...
         'enable', ...
-          onIff(strcmpi(editMode,'delete track...') && ...
+          onIff(strcmpi(editMode,'delete end of track...') && ...
+          (length(self.selected)==1))); %#ok<*PROP>
+
+    % deleteAtStart panel
+    set(self.deleteAtStartdoitbutton, ...
+        'enable', ...
+          onIff(strcmpi(editMode,'delete start of track...') && ...
           (length(self.selected)==1))); %#ok<*PROP>
 
     % swap ID panel
@@ -4985,7 +5064,8 @@ end % methods
 methods (Static=true)
   % -----------------------------------------------------------------------  
   function trk = getPartOfTrack(trk,f0,f1)
-    % returns a subset of the input trx structure, from frame f0 to f1
+    % returns a subset of the input trx structure, from frame f0 to f1,
+    % inclusive.
     % does not copy all fields -- convert_units must be re-run on the output track
     % splintered from fixerrorsgui 6/21/12 JAB
     
