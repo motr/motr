@@ -6,5 +6,6 @@ function fnSubmitJobLocal(strJobargin)
 % the Free Software Foundation (see GPL.txt)
 
 
-fnJobAlgorithm(strJobargin);
-drawnow
+isRunningAsClusterJob=false;
+fnJobAlgorithm(strJobargin,isRunningAsClusterJob);
+drawnow('expose');  drawnow('update');

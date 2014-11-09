@@ -1,4 +1,4 @@
-function fnJobAlgorithm(strJobargin)
+function fnJobAlgorithm(strJobargin,isRunningAsClusterJob)
 
 % Copyright (c) 2008 Shay Ohayon, California Institute of Technology. This
 % file is a part of a free software. you can redistribute it and/or modify
@@ -15,6 +15,10 @@ if ~exist('strJobargin','var')
   fprintf('No parameter passed\n');
   return;
 end;
+
+if ~exist('isRunningAsClusterJob','var') || isempty(isRunningAsClusterJob) ,
+  isRunningAsClusterJob=true;
+end
 
 if ~exist(strJobargin,'file')
   error('Critial Error - Could not find file at %s',strJobargin);
@@ -106,9 +110,10 @@ else
   fprintf('Job Finished \n');
 end
 
-if isdeployed
+%if isdeployed() ,
+if isRunningAsClusterJob ,
   quit
-end;
+end
 
 end
 
