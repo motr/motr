@@ -1,0 +1,16 @@
+1.  Make sure all the Motr stuff is on the path, perhaps by using
+    fnSetupFolders().
+
+2.  In Matlab, cd into this dir (Deploy).
+
+3.  Run buildStandaloneExecutables(), which should generate motr.exe
+    and catalytic.exe in this directory (Deploy).
+
+4.  Obtain the Matlab Compiler Runtime 8.2
+    (MCR_R2013b_win64_installer.exe) installer, and put it in this directory (Deploy).
+
+5.  Compile the motr.nsi install script using the Nullsoft Install System v2.35 or
+    above.  This should create install_motr.exe, which is the deployable.
+
+ALT
+2014-11-10
