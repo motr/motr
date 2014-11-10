@@ -12,5 +12,8 @@
 5.  Compile the motr.nsi install script using the Nullsoft Install System v2.35 or
     above.  This should create install_motr.exe, which is the deployable.
 
+The installer is designed to work on 64-bit Windows 7 or above,
+although I haven't tested it on Windows 8.
+
 ALT
 2014-11-10

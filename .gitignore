@@ -6,3 +6,8 @@ defaultSegmentationParams.mat
 Deploy/MouseTrackProj
 Deploy/MouseTrackProj/*
 Deploy/MCR_R2013b_win64_installer.exe
+Deploy/catalytic.exe
+Deploy/install_motr.exe
+Deploy/mccExcludedFiles.log
+Deploy/motr.exe
+Deploy/readme.txt
