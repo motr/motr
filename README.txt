@@ -34,3 +34,11 @@ tracks.
 All code in Motr is licensed under the GNU General Public License,
 Version 2 (GPLv2).
 
+
+Release History
+---------------
+
+1.0   Nov 10, 2014     First puclicly available tagged release.
+
+1.01  Nov 10, 2014     Added "Release History" section to README.txt.
+
