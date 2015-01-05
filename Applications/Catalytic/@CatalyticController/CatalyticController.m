@@ -376,7 +376,18 @@ methods
                               'cdata',im, ...
                               'buttondownfcn',@(source,event)self.mouseButtonDownInImage(source,event));
     %set(self.fig,'colormap',gray(256));
-    set(self.mainAxes,'clim',[min(im(:)) max(im(:))], ...
+    clLow=min(im(:));
+    clHigh=max(im(:));
+    if ~isfinite(clLow) || ~isfinite(clHigh) || clLow>=clHigh ,
+        if isa(im,'uint8') ,
+            clLow=0;
+            clHigh=255;
+        else
+            clLow=0;
+            clHigh=1;
+        end
+    end    
+    set(self.mainAxes,'clim',[clLow clHigh], ...
                       'xlim',[0.5 self.nc+0.5], ...
                       'ylim',[0.5 self.nr+0.5], ...
                       'xtickmode','auto',...
