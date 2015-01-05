@@ -42,3 +42,5 @@ Release History
 
 1.01  Nov 10, 2014     Added "Release History" section to README.txt.
 
+1.02  Jan  4, 2015     Fixed small bug in Catalytic that reared when
+                       first video frame had no contrast.
