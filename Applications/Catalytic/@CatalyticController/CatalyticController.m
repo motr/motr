@@ -3,7 +3,7 @@ classdef CatalyticController < handle
 properties
   fig=[];  % the figure
   isFileOpen=false;
-  seqs = [];
+  seqs = [];  % the list of suspicious sequences
   moviename = [];
   trx = [];
   %annname = [];
@@ -20,8 +20,8 @@ properties
   colororder
   colors
   frameIndex
-  seqi
-  seq
+  seqi  % the index of the current suspicious sequence   
+  seq  % the current suspicious sequence (can differ from seqs(seqi) when user is editing)
   nselect
   selected
   motionobj
@@ -365,7 +365,7 @@ methods
   
   
   %--------------------------------------------------------------------------
-  function self = plotFirstFrame(self)
+  function self = initializeFrameView(self)
     %axes(self.mainAxes);
     im = self.readframe(self.frameIndex);
     [self.nr,self.nc,self.ncolors] = size(im);
@@ -411,7 +411,7 @@ methods
         self.htailmarker(fly),self.hpath(fly)] = ...
         initFly(self,self.colors(fly,:),self.mainAxes);
       updateFlyPathVisible(self);
-      fixUpdateFly(self,fly);
+      updateFlyView(self,fly);
     end
     % self.zoomInOnSeq();
     self.autoZoom();
@@ -557,7 +557,7 @@ methods
     i = self.trx(fly).off+(self.frameIndex);
     self.trx(fly).x(i) = tmp(1,1);
     self.trx(fly).y(i) = tmp(1,2);
-    fixUpdateFly(self,fly);
+    updateFlyView(self,fly);
     
   end  % method
   
@@ -732,7 +732,7 @@ methods
     
     self.frameIndex = round(get(hObject,'value'));
     setFrameNumber(self,hObject);
-    self.plotFrame();
+    self.updateFrameAndFlies();
     % guidata(hObject,self);
     
   end  % method
@@ -760,7 +760,7 @@ methods
       set(hObject,'string',num2str(self.frameIndex));
     end
     setFrameNumber(self,self.frameIndex);
-    self.plotFrame();
+    self.updateFrameAndFlies();
     % guidata(hObject,self);
     
   end  % method
@@ -804,6 +804,10 @@ methods
     % hObject    handle to correctbutton (see GCBO)
     % eventdata  reserved - to be defined in a future version of MATLAB
     % self    structure with self and user data (see GUIDATA)
+    
+    if isempty(self.seq) ,
+      return
+    end
     
     oldPointer=self.pointerToWatch();
     
@@ -1072,7 +1076,7 @@ methods
           self.seqs(si).type = self.seqs(si).type(length( 'dummy' ) + 1:end);
         end
         
-        fixUpdateFly( self, fly );
+        updateFlyView( self, fly );
         fixBirthEvent( self, fly );
         fixDeathEvent( self, fly );
         
@@ -1112,7 +1116,7 @@ methods
           fixDeathEvent( self, fly );
         end
         
-        fixUpdateFly( self, fly );
+        updateFlyView( self, fly );
         
         break
       elseif strcmp( self.undolist{ui}{1}, 'connect' )
@@ -1130,7 +1134,7 @@ methods
         last_trk2 = CatalyticController.getPartOfTrack( self.trx(fly1), f2, inf );
         
         self.trx(fly1) = catTracks( first_trk1, trk1 );
-        fixUpdateFly( self, fly1 );
+        updateFlyView( self, fly1 );
         fixDeathEvent( self, fly1 );
         for si = seqs_removed1
           assert( ~isempty( strfindi( self.seqs(si).type, 'dummy' ) ) );
@@ -1143,7 +1147,7 @@ methods
           self.htailmarker(fly2), self.hpath(fly2)] = ...
           initFly( self.colors(fly2,:) );
         updateFlyPathVisible( self );
-        fixUpdateFly( self, fly2 );
+        updateFlyView( self, fly2 );
         fixBirthEvent( self, fly2 );
         fixDeathEvent( self, fly2 );
         for si = seqs_removed2
@@ -1163,7 +1167,7 @@ methods
           i = self.trx(fly).off+(f);
           self.trx(fly).theta(i) = modrange(self.trx(fly).theta(i)+pi,-pi,pi);
         end
-        fixUpdateFly(self,fly);
+        updateFlyView(self,fly);
         
         break
       elseif strcmp( self.undolist{ui}{1}, 'manytrack' )
@@ -1182,7 +1186,7 @@ methods
         end
         
         for fly = flies
-          fixUpdateFly( self, fly );
+          updateFlyView( self, fly );
         end
         
         break
@@ -1232,7 +1236,7 @@ methods
     % guidata(hObject,self);
     self.updateControlVisibilityAndEnablement();
     self.updateWindowTitle();    
-    self.plotFrame();  % re-draw the current frame
+    self.updateFrameAndFlies();  % re-draw the current frame
     self.restorePointer(oldPointer);
   end  % method
   
@@ -1271,7 +1275,7 @@ methods
       % remove events involving this fly in the deleted interval
       evts_removed = removeFlyEvent(self,iAnimal,self.frameIndex+1,inf);
       setFlySelectedInView(self,iAnimal,false);
-      fixUpdateFly(self,iAnimal);
+      updateFlyView(self,iAnimal);
     end
     self.undolist{end}{end+1} = evts_removed;
     
@@ -1335,7 +1339,7 @@ methods
       % remove events involving this fly in the deleted interval
       evts_removed = removeFlyEvent(self,iAnimal,-inf,self.frameIndex-1);
       setFlySelectedInView(self,iAnimal,false);
-      fixUpdateFly(self,iAnimal);
+      updateFlyView(self,iAnimal);
     end
     self.undolist{end}{end+1} = evts_removed;
     
@@ -1545,7 +1549,7 @@ methods
       self.lastframe = self.frameIndex;
       self.frameIndex = nextnearframe;
       setFrameNumber(self,hObject);
-      self.plotFrame();
+      self.updateFrameAndFlies();
       
       % guidata(hObject,self);
       
@@ -1585,7 +1589,7 @@ methods
       self.lastframe = self.frameIndex;
       self.frameIndex = nextnearframe;
       setFrameNumber(self,hObject);
-      self.plotFrame();
+      self.updateFrameAndFlies();
       
       % guidata(hObject,self);
       
@@ -1645,7 +1649,7 @@ methods
       self.lastframe = self.frameIndex;
       self.frameIndex = nextnearframe;
       setFrameNumber(self,hObject);
-      self.plotFrame();
+      self.updateFrameAndFlies();
       
       % guidata(hObject,self);
       
@@ -1685,7 +1689,7 @@ methods
       self.lastframe = self.frameIndex;
       self.frameIndex = nextnearframe;
       setFrameNumber(self,hObject);
-      self.plotFrame();
+      self.updateFrameAndFlies();
       
       % guidata(hObject,self);
       
@@ -1725,7 +1729,7 @@ methods
     else
       self.nframesplot = v;
       for fly = 1:self.nflies,
-        fixUpdateFly(self,fly);
+        updateFlyView(self,fly);
       end
     end
     % guidata(hObject,self);
@@ -1885,7 +1889,7 @@ methods
     
     % guidata(hObject,self);
     
-    fixUpdateFly(self,fly);
+    updateFlyView(self,fly);
     
     self.updateControlVisibilityAndEnablement();
     self.updateWindowTitle();
@@ -2091,7 +2095,7 @@ methods
     
     % guidata(hObject,self);
     
-    fixUpdateFly(self,fly1);
+    updateFlyView(self,fly1);
     
     self.updateControlVisibilityAndEnablement();
     self.updateWindowTitle();
@@ -2302,7 +2306,7 @@ methods
     
     % guidata(hObject,self);
     
-    fixUpdateFly(self,fly);
+    updateFlyView(self,fly);
     self.updateControlVisibilityAndEnablement();
     self.updateWindowTitle();
     
@@ -2375,7 +2379,7 @@ methods
       %self=rmfield( self, 'trackingstoppedframe' );
       
       %    setFrameNumber( self, hobject );
-      %    plotFrame( self );
+      %    updateFrameAndFlies( self );
     end
     
     fixDeathEvent(self,fly);
@@ -2392,7 +2396,7 @@ methods
     
     % guidata(hObject,self);
     
-    fixUpdateFly(self,fly);
+    updateFlyView(self,fly);
     self.updateControlVisibilityAndEnablement();
     self.updateWindowTitle();    
     self.restorePointer(oldPointer);
@@ -2536,7 +2540,7 @@ methods
     
     % guidata(hObject,self);
     
-    fixUpdateFly(self,fly);
+    updateFlyView(self,fly);
     self.updateControlVisibilityAndEnablement();
     self.updateWindowTitle();
     self.restorePointer(oldPointer);
@@ -2680,7 +2684,7 @@ methods
     % guidata(hObject,self);
     
     for fly = flies(:)',
-      fixUpdateFly(self,fly);
+      updateFlyView(self,fly);
     end
     self.updateControlVisibilityAndEnablement();
     self.updateWindowTitle();    
@@ -2858,7 +2862,7 @@ methods
       self.htailmarker(fly),self.hpath(fly)] = ...
       initFly(self.colors(fly,:));
     updateFlyPathVisible(self);
-    fixUpdateFly(self,fly);
+    updateFlyView(self,fly);
     
     set(self.addnewtrackdoitbutton,'Enable','off');
     set(self.addnewtrackpanel','visible','off');
@@ -2991,7 +2995,7 @@ methods
         if self.frameIndex < self.nframes,
           self.frameIndex = self.frameIndex+1;
           setFrameNumber(self,self.frameIndex);
-          self.plotFrame();
+          self.updateFrameAndFlies();
           % guidata(hObject,self);
         end
         
@@ -3000,7 +3004,7 @@ methods
         if self.frameIndex > 1,
           self.frameIndex = self.frameIndex-1;
           setFrameNumber(self,self.frameIndex);
-          self.plotFrame();
+          self.updateFrameAndFlies();
           % guidata(hObject,self);
         end
         
@@ -3017,7 +3021,7 @@ methods
     % eventdata  reserved - to be defined in a future version of MATLAB
     % self    structure with self and user data (see GUIDATA)
     %self.doFlipUpDown = get( hObject, 'value' );
-    %plotFrame( self )
+    %updateFrameAndFlies( self )
     % guidata( hObject, self )
   end  % method
   
@@ -3103,8 +3107,8 @@ methods
     oldPointer=self.pointerToWatch();
     
     swapIdentities( self, self.swapfirstframe, f, fly1, fly2 );
-    fixUpdateFly(self,fly1);
-    fixUpdateFly(self,fly2);
+    updateFlyView(self,fly1);
+    updateFlyView(self,fly2);
     self.undolist{end+1} = {'swap',[self.swapfirstframe f],[fly1,fly2]};
     
     setFlySelectedInView(self,fly1,false);
@@ -3223,17 +3227,54 @@ methods
       % open the file
       ctc=load(fileNameAbs,'-mat');
       
+      % Make sure we can find the movie file
+      didUserLocateMovieFileManually = false;
+      movieFileName = ctc.moviename ;
+      if isFileNameAbsolute(movieFileName) ,
+        movieFileNameAbs = movieFileName;
+      else
+        movieFileNameAbs=fileNameAbsFromWhatever(movieFileName,parentDirNameAbs);
+      end
+      if ~exist(movieFileNameAbs,'file') ,
+        [filename,pathname] = ...
+          uigetfile({'*.seq', 'Norpix seq files (*.seq)' ; ...
+                     '*.avi', 'AVI files (*.avi)' ; ...
+                     '*.mj2', 'Motion JPEG-2000 files (*.mj2)' ; ...
+                     '*.*', 'All files (*.*)'}, ...
+                     'Locate Movie File...', ...
+                    parentDirNameAbs);
+        if ~ischar(filename),
+          restorePointer(self,oldPointer);
+          uiwait(errordlg('Unable to open .ctc file because can''t find movie file.','Error','modal'));
+          return
+        end
+        didUserLocateMovieFileManually = true;
+        movieFileNameAbs=fullfile(pathname,filename);
+        if isequal(pathname,parentDirNameAbs) ,
+          % If movie file is alongside .ctc file, save movie file name as a relative file name
+          movieFileName = filename;
+        else
+          % If movie file is somewhere else, save movie file name as
+          % an absolute file name
+          movieFileName = movieFileNameAbs;
+        end
+      end
+      if ~exist(movieFileNameAbs,'file') ,
+        restorePointer(self,oldPointer);
+        uiwait(errordlg('Unable to open .ctc file because can''t find movie file.','Error','modal'));
+        return
+      end
+      
       % read inputs
       self.isFileOpen=true;
       self.ctcVersion=ctc.version;
-      self.seqs = ctc.seqs;
-      self.moviename =  ctc.moviename;
+      self.seqs = ctc.seqs;      
+      self.moviename =  movieFileName;
       self.trx = ctc.trx;
       %self.annname = ctc.annname;
       self.params = ctc.params;
       self.originalTrackFileName = ctc.originalTrackFileName;
       self.savename = fileNameAbs;
-      movieFileNameAbs=fileNameAbsFromWhatever(self.moviename,parentDirNameAbs);
       [self.readframe,self.nframes,self.fid] = get_readframe_fcn(movieFileNameAbs);
       
       % get timestamps
@@ -3248,26 +3289,25 @@ methods
       % initializeMainAxes(self);
       
       % initialize state
-      isseqleft = false;
+      areThereAnySuspiciousSequences = false;
       for i = 1:length(self.seqs),
         if isempty( strfindi(self.seqs(i).type,'dummy') ),
-          isseqleft = true;
-          break;
+          areThereAnySuspiciousSequences = true;
+          indexOfFirstSuspiciousSequence = i;
+          break
         end
-      end
-      if ~isseqleft,
-        self.doneseqs = [];
-        %guidata(fig,self);
-        %msgbox('No suspicious sequences to be corrected. Exiting. ','All Done');
-        %uiresume(self.fig);
-        return
       end
       %self.doFlipUpDown = 0;
       self.nflies = length(self.trx);
       % self = setFlyColors(self);
       [self.colors0,self.colororder,self.colors] = ...
         colorOrderFromNumberOfAnimals(self.nflies);
-      setSeq(self,i,true);
+      if areThereAnySuspiciousSequences ,
+        setSeq(self,indexOfFirstSuspiciousSequence,true);
+      else
+        self.doneseqs = [];
+        self.frameIndex = 1 ;
+      end
       self.nselect = 0;
       self.selected = [];
       self.motionobj = [];
@@ -3275,7 +3315,11 @@ methods
       self.nframesplot = 101;
       %self.autoZoomMode = 'sequence';
       self.undolist = {};
-      self.needssaving = 0;  % don't need to save b/c just opened
+      if didUserLocateMovieFileManually ,
+        self.needssaving = 1;  % the movie file name has been changed
+      else
+        self.needssaving = 0;  % don't need to save b/c just opened
+      end
       
       %self.foregroundSign = 1;
       % self.bgcolor = nan;
@@ -3328,7 +3372,7 @@ methods
       
       self.initializeFrameSlider();
       self.setFrameNumber();
-      self.plotFirstFrame();
+      self.initializeFrameView();
       self.initializeDisplayPanel();
       self.setErrorTypes();
 %       self.backgroundImage = reshape(backgroundImageAsVector,[self.nc,self.nr])';
@@ -3337,9 +3381,9 @@ methods
       initializeKeyPressFcns(self);
 
       storePanelPositions(self);
-    catch excp  %#ok
+    catch excp
       restorePointer(self,oldPointer);
-      uiwait(errordlg(sprintf('Unable to open file %s',fileNameRel),'Error','modal'));
+      uiwait(errordlg(sprintf('Unable to open file %s: %s',fileNameRel,excp.message),'Error','modal'));
       return
     end
     
@@ -3641,12 +3685,23 @@ methods
     isFileOpen=self.isFileOpen; 
     thereAreUnsavedChanges=self.needssaving;
     editMode=self.editMode;  % the current editing mode, or empty if not in an editing mode
+    areThereAnySuspiciousSequences = ~isempty(self.seqs);
+    isThereACurrentSuspiciousSequence = ~isempty(self.seq);
     
     % As a first pass, enable/disable uicontrols depending on isFileOpen
     controls=findall(theFigure,'type','uicontrol');
     set(controls,'enable',onIff(isFileOpen)); 
     
     % Now refine things based on other settings
+    
+    % Nav tools
+    set(self.nexterrortypemenu,'enable',onIff(isFileOpen&&areThereAnySuspiciousSequences));     
+    set(self.sortbymenu,'enable',onIff(isFileOpen&&areThereAnySuspiciousSequences));     
+    set(self.correctbutton,'enable',onIff(isFileOpen&&isThereACurrentSuspiciousSequence));     
+    set(self.backbutton,'enable',onIff(isFileOpen&&isThereACurrentSuspiciousSequence));     
+    
+    % play buttons
+    set(self.playSeqButton ,'enable',onIff(isFileOpen&&~isempty(self.seq)));     
     
     % zoom buttons
     set(self.zoomInButton ,'enable',onIff(isFileOpen)); 
@@ -3932,7 +3987,7 @@ methods
     
     if nargin < 3 || ~isfirstframe,
       setFrameNumber(self);
-      self.plotFrame();
+      self.updateFrameAndFlies();
       self.autoZoom();
       %zoomInOnSeq(self);
     end
@@ -3944,6 +3999,10 @@ methods
   function playSeq(self)
     % play through a sequence
     % splintered from fixerrorsgui 6/23/12 JAB
+    
+    if isempty(self.seq) ,
+      return
+    end
     
     self.isPlayingSeq = true;
     set(self.playSeqButton,'string','Stop Seq');
@@ -3958,7 +4017,7 @@ methods
       
       self.frameIndex = currentFrame;
       setFrameNumber(self);
-      self.plotFrame();
+      self.updateFrameAndFlies();
       %drawnow('update');
       %drawnow('expose');
       drawnow;  % have to use full drawnow so that user pressing "stop"
@@ -3978,7 +4037,7 @@ methods
     if self.isPlayingSeq,
       self.frameIndex = self.seq.frames(1);
       setFrameNumber(self);
-      self.plotFrame();
+      self.updateFrameAndFlies();
     end
     
     self.isPlayingSeq = false;
@@ -4008,7 +4067,7 @@ methods
       
       self.frameIndex = currentFrame;
       setFrameNumber(self);
-      self.plotFrame();
+      self.updateFrameAndFlies();
       %drawnow('update');
       %drawnow('expose');
       drawnow;  % have to use full drawnow so that user pressing "stop"
@@ -4168,9 +4227,16 @@ methods
         end
         continue;
       end
-      if strcmpi(self.plotpath,'all') || ...
-          (strcmpi(self.plotpath,'suspicious') && ismember(fly,self.seq.flies)),
+      if strcmpi(self.plotpath,'all') ,
         set(self.hpath(fly),'visible','on');
+      elseif strcmpi(self.plotpath,'suspicious') 
+        if isempty(self.seq) ,
+          set(self.hpath(fly),'visible','off');
+        elseif ismember(fly,self.seq.flies) ,
+          set(self.hpath(fly),'visible','on');
+        else
+          set(self.hpath(fly),'visible','off');
+        end
       else
         set(self.hpath(fly),'visible','off');
       end
@@ -4180,7 +4246,7 @@ methods
   
   
   % -----------------------------------------------------------------------
-  function fixUpdateFly(self,fly)
+  function updateFlyView(self,fly)
     % sets fly plot properties based on fly data
     % splintered from fixerrorsgui 6/21/12 JAB
     
@@ -4269,12 +4335,12 @@ methods
     if ~exist('seq','var'),
       seq = self.seq;
     end
-    
-    border = round(min(self.nr,self.nc)/30);
-    
+
     if isempty(seq)
       return
     end
+    
+    border = round(min(self.nr,self.nc)/30);   
     
     frames = max(min(seq.frames)-10,1):max(seq.frames)+10;
     nfliesseq = length(seq.flies);
@@ -4303,60 +4369,61 @@ methods
     if length( find( badidx ) ) ~= length( x0(:) ) ,
       x0(badidx) = []; y0(badidx) = []; x1(badidx) = []; y1(badidx) = [];
       
-      xlim = [min(x0(:))-border,max(x1(:))+border];
-      xlim = max(min(xlim,self.nc+0.5),0.5);
-      ylim = [min(y0(:))-border,max(y1(:))+border];
-      ylim = max(min(ylim,self.nr+0.5),0.5);
+      xlimRaw = [min(x0(:))-border,max(x1(:))+border];
+      xlimLimited = max(min(xlimRaw,self.nc+0.5),0.5);  % limit to image edges
+      ylimRaw = [min(y0(:))-border,max(y1(:))+border];
+      ylimLimited = max(min(ylimRaw,self.nr+0.5),0.5);  % limit t0 image edges
       
       % match aspect ratio
-      [xlim,ylim] = self.matchAspectRatio(xlim,ylim);
+      %[xlimWithAspectRatioAdjusted,ylimWithAspectRatioAdjusted] = self.matchAspectRatio(xlimLimited,ylimLimited);
       
-      set(self.mainAxes,'xlim',xlim,'ylim',ylim);
+      %set(self.mainAxes,'xlim',xlimWithAspectRatioAdjusted,'ylim',ylimWithAspectRatioAdjusted);
+      set(self.mainAxes,'xlim',xlimLimited,'ylim',ylimLimited);
     end
     
   end  % method
 
   
   
-  % -----------------------------------------------------------------------
-  function [xl,yl] = matchAspectRatio(self,xl0,yl0)
-    % zoom in on a set of limits as much as possible without changing aspect ratio
-    % splintered from fixerrorsgui 6/21/12 JAB
-    
-    xl=xl0;
-    yl=yl0;
-    aspectratiocurr = diff(xl)/diff(yl);
-    if aspectratiocurr < self.mainaxesaspectratio,
-      % make x limits bigger to match
-      xmu = mean(xl);
-      dx = diff(yl)*self.mainaxesaspectratio;
-      xl = xmu+[-dx/2,dx/2];
-      % if xl overruns the image bounds, correct it
-      if xl(1)<0.5
-        xl=0.5+[0 dx];
-      end
-      if xl(2)>self.nc+0.5
-        xl=self.nc+0.5+[-dx 0];
-      end
-    else
-      % make y limits bigger to match
-      ymu = mean(yl);
-      dy = diff(xl)/self.mainaxesaspectratio;
-      yl = ymu+[-dy/2,dy/2];
-      % if yl overruns the image bounds, correct it
-      if yl(1)<0.5
-        yl=0.5+[0 dy];
-      end
-      if yl(2)>self.nr+0.5
-        yl=self.nr+0.5+[-dy 0];
-      end
-    end
-  end  % method
+%   % -----------------------------------------------------------------------
+%   function [xl,yl] = matchAspectRatio(self,xl0,yl0)
+%     % zoom in on a set of limits as much as possible without changing aspect ratio
+%     % splintered from fixerrorsgui 6/21/12 JAB
+%     
+%     xl=xl0;
+%     yl=yl0;
+%     aspectratiocurr = diff(xl)/diff(yl);
+%     if aspectratiocurr < self.mainaxesaspectratio,
+%       % make x limits bigger to match
+%       xmu = mean(xl);
+%       dx = diff(yl)*self.mainaxesaspectratio;
+%       xl = xmu+[-dx/2,dx/2];
+%       % if xl overruns the image bounds, correct it
+%       if xl(1)<0.5
+%         xl=0.5+[0 dx];
+%       end
+%       if xl(2)>self.nc+0.5
+%         xl=self.nc+0.5+[-dx 0];
+%       end
+%     else
+%       % make y limits bigger to match
+%       ymu = mean(yl);
+%       dy = diff(xl)/self.mainaxesaspectratio;
+%       yl = ymu+[-dy/2,dy/2];
+%       % if yl overruns the image bounds, correct it
+%       if yl(1)<0.5
+%         yl=0.5+[0 dy];
+%       end
+%       if yl(2)>self.nr+0.5
+%         yl=self.nr+0.5+[-dy 0];
+%       end
+%     end
+%   end  % method
 
   
   
   % -----------------------------------------------------------------------
-  function plotFrame(self)
+  function updateFrameAndFlies(self)
     % plot a single video frame
     % splintered from fixerrorsgui 6/21/12 JAB
     
@@ -4368,7 +4435,7 @@ methods
 %     end
     set(self.frameImageGH,'cdata',im);
     for fly = 1:self.nflies,
-      fixUpdateFly(self,fly);
+      updateFlyView(self,fly);
       if ~isdummytrk(self.trx(fly))
         if length(self.trx(fly).x) ~= self.trx(fly).nframes || ...
             1 + self.trx(fly).endframe - self.trx(fly).firstframe ~= self.trx(fly).nframes,
@@ -4851,7 +4918,7 @@ methods
       
       % display progress, if applicable
       if get(self.manytrackshowtrackingbutton,'value') || get( self.showtrackingbutton, 'value' )
-        self.plotFrame();
+        self.updateFrameAndFlies();
         xlim = get(self.mainAxes,'xlim');
         ylim = get(self.mainAxes,'ylim');
         minx = min(mu(:,1));

@@ -44,3 +44,7 @@ Release History
 
 1.02  Jan  4, 2015     Fixed small bug in Catalytic that reared when
                        first video frame had no contrast.
+
+1.03  Mar 13, 2015     Now works properly when there are no suspicious 
+                       sequences.  Also now prompts user to locate
+                       a missing movie file.
