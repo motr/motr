@@ -593,7 +593,7 @@ methods
     self.trx(fly).a(i) = a;
     self.trx(fly).theta(i) = theta;
     
-    fixUpdateFly(self,fly);
+    updateFlyView(self,fly);
     
   end  % method
   
@@ -635,7 +635,7 @@ methods
     self.trx(fly).y(i) = y;
     self.trx(fly).b(i) = b;
     
-    fixUpdateFly(self,fly);
+    updateFlyView(self,fly);
     
   end  % method
   
@@ -677,7 +677,7 @@ methods
     self.trx(fly).y(i) = y;
     self.trx(fly).b(i) = b;
     
-    fixUpdateFly(self,fly);
+    updateFlyView(self,fly);
     
   end  % method
   
@@ -713,7 +713,7 @@ methods
     self.trx(fly).a(i) = a;
     self.trx(fly).theta(i) = theta;
     
-    fixUpdateFly(self,fly);
+    updateFlyView(self,fly);
     
   end  % method
   
