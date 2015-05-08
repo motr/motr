@@ -45,14 +45,12 @@ Release History
 1.02  Jan  4, 2015     Fixed small bug in Catalytic that reared when
                        first video frame had no contrast.
 
-1.03  Mar 13, 2015     Now works properly when there are no suspicious 
-                       sequences.  Also now prompts user to locate
-                       a missing movie file.
+1.03  Mar 13, 2015     Catalytic now works properly when there are no 
+                       suspicious sequences.  Also now prompts user 
+                       to locate a missing movie file.
 
-1.04  May  8, 2015     Catalytic: Fixed breakage when zero suspicious
-                       sequences.  Added code to locate missing movie
-                       file.  Motr: Performance improvements when
-                       reading .avi files.  Added utility function to
-                       convert .avi files to .mj2 files.
+1.04  May  8, 2015     Performance improvements when reading .avi 
+                       files.  Added utility function to convert 
+                       .avi files to .mj2 files.
 
  
