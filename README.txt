@@ -11,7 +11,7 @@ Motr documentation can be found here:
 This repository includes compiled binary MEX files for the 64-bit
 Windows platform.  So if you plan to run Motr on 64-bit Windows, there
 is no need to compile anything.  However, you will need the Microsoft
-Visual C++ Reditributable for Visual Studio 2012, available here:
+Visual C++ Redistributable for Visual Studio 2012, available here:
 
     http://www.microsoft.com/en-us/download/details.aspx?id=30679
 
@@ -48,3 +48,11 @@ Release History
 1.03  Mar 13, 2015     Now works properly when there are no suspicious 
                        sequences.  Also now prompts user to locate
                        a missing movie file.
+
+1.04  May  8, 2015     Catalytic: Fixed breakage when zero suspicious
+                       sequences.  Added code to locate missing movie
+                       file.  Motr: Performance improvements when
+                       reading .avi files.  Added utility function to
+                       convert .avi files to .mj2 files.
+
+ 
