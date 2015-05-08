@@ -22,6 +22,7 @@ else
   strctVideoInfo.m_iWidth = vidObj.Width;
   strctVideoInfo.m_afTimestamp = ...
     (1/strctVideoInfo.m_fFPS)*(0:(strctVideoInfo.m_iNumFrames-1));  % s
+  strctVideoInfo.m_vrVideoReader = vidObj ;
 end
 
 end

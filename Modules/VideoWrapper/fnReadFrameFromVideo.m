@@ -19,7 +19,9 @@ if strcmpi(strExt,'.seq')
   end
 else    
   % vidObj = mmreader(strFileName);
-  vidObj = VideoReader(strFileName);
+  %vidObj = VideoReader(strFileName);  % too slow to do this on every frame
+                                       % read for big files!
+  vidObj = strctVideoInfo.m_vrVideoReader ;
   a3fFrameThis=vidObj.read(iFrame);  % uint8, w x h x 3
   output=uint8(mean(double(a3fFrameThis),3));  % w x h, uint8
 end

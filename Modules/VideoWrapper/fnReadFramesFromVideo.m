@@ -15,7 +15,8 @@ strFileName = strctVideoInfo.m_strFileName;
 if strcmpi(strExt,'.seq')
   output = fnReadFramesFromSeq(strctVideoInfo, aiFrames);
 else
-  vidObj = VideoReader(strFileName);
+  %vidObj = VideoReader(strFileName);  % too slow
+  vidObj = strctVideoInfo.m_vrVideoReader ;
   output = zeros(vidObj.Height,vidObj.Width,length(aiFrames),'uint8');
   for i=1:length(aiFrames)
     a3fFrameThis=vidObj.read(aiFrames(i));  % w x h x 3
