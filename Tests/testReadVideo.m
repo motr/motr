@@ -2,7 +2,7 @@ function success=testReadVideo()
 
 thisFileNameAbs=mfilename('fullpath');  % without .m, for some reason
 thisDirNameAbs=fileparts(thisFileNameAbs)
-thisFunctionName=fileNameRelFromAbs(thisFileNameAbs);
+%thisFunctionName=fileNameRelFromAbs(thisFileNameAbs);
 d=dir(fullfile(thisDirNameAbs,'*.seq'));
 fileNamesLocal={d.name}';
 d=dir(fullfile(thisDirNameAbs,'*.mj2'));
