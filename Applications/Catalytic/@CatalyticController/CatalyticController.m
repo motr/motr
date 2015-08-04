@@ -193,6 +193,23 @@ properties
   angle_dampen
   maxMajorAxisInPels  % N.B. Not semi- or quarter-major axis
   meanMajorAxisInPels  % N.B. Not semi- or quarter-major axis
+end
+
+properties (Constant=true)
+  minLayoutWidth = 184.833333333333
+  minLayoutHeight = 58  
+  rightPanelsAreaWidth = 84
+  frameSliderNominalX = 1.6
+  frameSliderNominalY = 13.2307692307692
+  frameSliderHeight = 1.15384615384615
+  displayPanelNominalX = 2.2
+  displayPanelNominalY = 1.38461538461538 
+  heightBetweenFrameSliderAndAxes = 1
+  heightFromAxesTopToFigureTop = 1
+  zoomButtonWidth = 5
+  zoomButtonHeight = 2
+  widthBetweenZoomButtons = 0.5
+  heightFromZoomButtonsToFrameSlider = 0.5
 end  % properties
 
 methods
@@ -280,20 +297,6 @@ methods
     
     % Make the figure visible
     set(self.fig,'visible','on');
-
-    % Do some hacking to set the minimum figure size to the current size
-    set(self.fig,'units','pixels');
-    pos=get(self.fig,'outerposition');
-    set(self.fig,'units','characters');    
-    sz=pos(3:4);
-    drawnow('update');
-    drawnow('expose');
-    pause(0.01);  % have to do to get below to work.  Sigh.
-    fpj=get(handle(self.fig),'JavaFrame');
-    jw=fpj.fHG1Client.getWindow();
-    if ~isempty(jw)
-      jw.setMinimumSize(java.awt.Dimension(sz(1),sz(2)));
-    end    
   end  % constructor
   
 
@@ -2928,47 +2931,96 @@ methods
 
     figpos = get(self.fig,'Position');
     
+    figureWidth = figpos(3) ;
+    figureHeight = figpos(4) ;
+    
+    if isempty(self.minLayoutWidth) ,
+        layoutWidth = figureWidth ;
+    else
+        layoutWidth = max(self.minLayoutWidth,figureWidth) ;
+    end
+    if isempty(self.minLayoutHeight) ,
+        layoutHeight = figureHeight ;
+    else
+        layoutHeight = max(self.minLayoutHeight,figureHeight) ;
+    end
+    layoutYOffset = figureHeight - layoutHeight ;    
+    
     % right panels: keep width, top dist, height, right dist the same
     ntags = numel(self.rightpanel_tags);
-    for fni = 1:ntags,
-      fn = self.rightpanel_tags{fni};
-      h = self.(fn);
+    for iTag = 1:ntags,
+      tag = self.rightpanel_tags{iTag};
+      h = self.(tag);
       if ~isempty(h) && ishandle(h) ,
         pos = get(h,'Position');
-        pos(1) = figpos(3) - self.rightpanel_dright(fni);
-        pos(2) = figpos(4) - self.rightpanel_dtop(fni);
+        pos(1) = layoutWidth - self.rightpanel_dright(iTag);
+        pos(2) = layoutYOffset + layoutHeight - self.rightpanel_dtop(iTag);
         set(h,'Position',pos);
       end
     end
 
-    % axes should fill everything else
-    sliderpos = get(self.frameslider,'Position');
-    seqinfopanelpos = get(self.seqinfopanel,'Position');
-    pos = get(self.mainAxes,'Position');
-    if ~isempty(self.axes_dslider)
-      pos(2) = sliderpos(2)+sliderpos(4)+self.axes_dslider;
-      pos(4) = figpos(4)-pos(2)-self.axes_dtop;
-      pos(3) = seqinfopanelpos(1)-pos(1)-self.axes_drightpanels;
-    end
-    pos=max(pos,0.001);
-    set(self.mainAxes,'Position',pos);
-    sliderpos([1,3]) = pos([1,3]);
-    set(self.frameslider,'Position',sliderpos);
+    % Main axes
+    mainAxesX = self.frameSliderNominalX ;
+    mainAxesY = layoutYOffset + self.frameSliderNominalY + ...
+               self.frameSliderHeight + self.heightBetweenFrameSliderAndAxes ;
+    mainAxesWidth = layoutWidth - self.rightPanelsAreaWidth - ...
+                    self.frameSliderNominalX - self.axes_drightpanels ;
+    mainAxesHeight = layoutHeight ...
+                     - self.frameSliderNominalY ...
+                     - self.frameSliderHeight ...
+                     - self.heightBetweenFrameSliderAndAxes ...
+                     - self.heightFromAxesTopToFigureTop ;
+    set(self.mainAxes, ...
+        'Position', [mainAxesX mainAxesY mainAxesWidth mainAxesHeight] );
+    
+    % Frame slider
+    frameSliderWidth = layoutWidth - self.rightPanelsAreaWidth - self.frameSliderNominalX ;
+    frameSliderY = layoutYOffset + self.frameSliderNominalY ;
+    set(self.frameslider,'Position',[self.frameSliderNominalX ...
+                                     frameSliderY ...
+                                     frameSliderWidth ...
+                                     self.frameSliderHeight]);
+                                 
+    % Zoom buttons
+    frameSliderRightEdgeX = self.frameSliderNominalX + frameSliderWidth ;
+    set(self.zoomOutButton, ...
+        'Position',[frameSliderRightEdgeX - self.zoomButtonWidth ...
+                    frameSliderY - self.heightFromZoomButtonsToFrameSlider - self.zoomButtonHeight ...
+                    self.zoomButtonWidth ...
+                    self.zoomButtonHeight]) ;
+    set(self.zoomInButton, ...
+        'Position',[frameSliderRightEdgeX - 2*self.zoomButtonWidth - self.widthBetweenZoomButtons ...
+                    frameSliderY - self.heightFromZoomButtonsToFrameSlider - self.zoomButtonHeight ...
+                    self.zoomButtonWidth ...
+                    self.zoomButtonHeight]) ;
+    
+    % Print Trx button
+    pos = get(self.printbutton,'Position') ;
+    pos(2) = layoutYOffset + 10.1538461538462 ;
+    set(self.printbutton, 'Position', pos) ;
+    
+    % Debug button
+    pos = get(self.debugbutton,'Position') ;
+    pos(2) = layoutYOffset + 10.1538461538462 ;
+    set(self.debugbutton, 'Position', pos) ;
+    
+    % Play Seq button
+    pos = get(self.playSeqButton,'Position') ;
+    pos(2) = layoutYOffset + 9.69230769230769 ;
+    set(self.playSeqButton, 'Position', pos) ;
 
-    % stuff below axes: keep dist bottom, height same, same dleft, width
-    mainAxesPosition = get(self.mainAxes,'Position');
-    mainAxesRightEdgeX=mainAxesPosition(1)+mainAxesPosition(3);
-    ntags = numel(self.bottom_tags);
-    for fni = 1:ntags,
-      fn = self.bottom_tags{fni};
-      h = self.(fn);
-      if (h==self.zoomInButton) || (h==self.zoomOutButton) && ...
-         ~isempty(h) && ishandle(h)
-        pos = get(h,'Position');
-        pos(1)=mainAxesRightEdgeX+self.bottom_dleft_from_image_right_edge(fni);
-        set(h,'Position',pos);
-      end
-    end
+    % Play Seq button
+    pos = get(self.playButton,'Position') ;
+    pos(2) = layoutYOffset + 9.69230769230769 ;
+    set(self.playButton, 'Position', pos) ;
+
+    % Display panel
+    displayPanelOriginalPosition = get(self.displaypanel,'Position') ;
+    displayPanelSize = displayPanelOriginalPosition(3:4) ;
+    set(self.displaypanel, ...
+        'Position',[self.displayPanelNominalX ...
+                    layoutYOffset + self.displayPanelNominalY ...
+                    displayPanelSize]);
     
     % restore fig units
     set(self.fig,'units',units_before);

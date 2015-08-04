@@ -71,7 +71,7 @@ end
   
 % update the single-mouse clips
 set(handles.hSingleMouseListbox, 'String', clipSMFNAbs);
-set(handles.hSingleMouseListbox, 'Value', iClipSMCurr);
+set(handles.hSingleMouseListbox, 'Value', max(1,iClipSMCurr));
 
 % generate the clip listbox items by coloring the clip names
 % appropriately
@@ -79,7 +79,7 @@ clipListString=colorizeClips(clipFNAbs,trackStatus,iClipCurr);
 
 % update the clip listbox
 set(handles.hExperimentClipsListbox, 'String', clipListString);
-set(handles.hExperimentClipsListbox, 'Value', iClipCurr);
+set(handles.hExperimentClipsListbox, 'Value', max(1,iClipCurr));  % setting this to -1 causes listbox to not be rendered, sometimes
 
 % update the enablement of the Results button
 if length(clipFNAbs)>0 && trackStatus(iClipCurr)==4  %#ok
