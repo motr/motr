@@ -8,12 +8,19 @@ function output = fnReadFramesFromVideo(strctVideoInfo, aiFrames)
 % the Free Software Foundation (see GPL.txt)
 
 %global g_strVideoWrapper
-strFileName = strctVideoInfo.m_strFileName;
+%strFileName = strctVideoInfo.m_strFileName;
 
-[dummy,dummy,strExt] = fileparts(strFileName);  %#ok
+%[dummy,dummy,strExt] = fileparts(strFileName);  %#ok
 
-if strcmpi(strExt,'.seq')
+if strctVideoInfo.m_fFileTypeIndex==0,    % magic number for .seq file
   output = fnReadFramesFromSeq(strctVideoInfo, aiFrames);
+elseif strctVideoInfo.m_fFileTypeIndex==1,   % magic number for .ufmf file
+  % .ufmf file
+  output = zeros(strctVideoInfo.m_iHeight,strctVideoInfo.m_iWidth,length(aiFrames),'uint8');
+  for i=1:length(aiFrames)
+    outputThis = ufmf_read_frame(strctVideoInfo.m_sUfmfHeader,aiFrames(i)) ;
+    output(:,:,i) = outputThis ;
+  end      
 else
   %vidObj = VideoReader(strFileName);  % too slow
   vidObj = strctVideoInfo.m_vrVideoReader ;

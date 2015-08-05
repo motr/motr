@@ -8,9 +8,9 @@ function output = fnReadFrameFromVideo(strctVideoInfo, iFrame)
 % the Free Software Foundation (see GPL.txt)
 
 %global g_strVideoWrapper
-strFileName = strctVideoInfo.m_strFileName;
+%strFileName = strctVideoInfo.m_strFileName;
 
-[dummy,dummy, strExt] = fileparts(strFileName);  %#ok
+%[dummy,dummy, strExt] = fileparts(strFileName);
 if strctVideoInfo.m_fFileTypeIndex==0,    % magic number
   % .seq file
   output = fnReadFrameFromSeq(strctVideoInfo, iFrame);

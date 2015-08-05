@@ -35,7 +35,7 @@ classdef UfmfFileReader < handle
             else                
                 fclose(self.fid_) ;
             end
-            self.fid_=[];
+            self.fid_ = [] ;
         end   % function
 
         function result = isValid(self)
