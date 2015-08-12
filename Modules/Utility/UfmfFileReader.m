@@ -14,7 +14,17 @@ classdef UfmfFileReader < handle
         end   % function
         
         function delete(self)
-            self.fclose() ;
+            try
+                self.fclose() ;
+            catch me
+                if isequal(me.identifier,'MATLAB:FileIO:InvalidFid') ,
+                    % ignore --- this seems to happen sometimes, not sure
+                    % what's up with that.  But should be warmless to
+                    % ignore
+                else
+                    rethrow(me);  % this will get converted to a warning, but still...
+                end
+            end
         end   % function
 
         function [A,count] = fread(self,varargin)
