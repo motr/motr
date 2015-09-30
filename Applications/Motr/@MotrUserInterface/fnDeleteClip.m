@@ -25,10 +25,10 @@ end
 u.clipFNAbs=clipFNAbs;
 u.trackStatus=trackStatus;
 u.iClipCurr=iClipCurr;
-set(hFig,'userdata',u);
+%set(hFig,'userdata',u);
 
 % Save the new info into the clipFN file
-saveClipFN(expDirName,clipFNAbs,u.clipSMFNAbs)
+MotrModel.saveClipFN(expDirName,clipFNAbs,u.clipSMFNAbs)
 
 % now update the GUI to reflect the status
 fnUpdateGUIStatus(hFig);

@@ -6,7 +6,7 @@ clip = acExp{iCurrExp}.acExperimentClips;
 
 % generate the clip listbox items by coloring the clip names
 % appropriately
-clipListString=colorizeClips(clip,iCurrClip);
+clipListString=MotrUserInterface.colorizeClips(clip,iCurrClip);
 
 % update the clip listbox
 set(handles.hExperimentClipsListbox, 'String', clipListString);

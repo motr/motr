@@ -6,7 +6,9 @@ function fnSetupFolders()
   %  rmpath(degit(genpath(fullfile(house_root_dir_name,'Deploy'))));
   %end
   addpath(house_root_dir_name);
-  addpath(degit(genpath(fullfile(house_root_dir_name,'Applications'))));
+  addpath(degit(genpath(fullfile(house_root_dir_name,'Applications','Catalytic'))));
+  addpath(degit(genpath(fullfile(house_root_dir_name,'Applications','Motr'))));
+  addpath(degit(genpath(fullfile(house_root_dir_name,'Applications','Repository'))));
   addpath(degit(genpath(fullfile(house_root_dir_name,'Config'))));
   addpath(degit(genpath(fullfile(house_root_dir_name,'ExtraModules'))));
   addpath(degit(genpath(fullfile(house_root_dir_name,'Modules'))));

@@ -15,6 +15,9 @@ if islinux() && ~isClusterExecutablePresent()
 end
 
 % Launch the GUI
-MouseHouse();
+model = MotrModel() ;
+ui = MotrUserInterface() ;
+ui.setModel(model);
+%MouseHouse();
 
 end

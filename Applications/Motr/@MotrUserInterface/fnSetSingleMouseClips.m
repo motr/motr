@@ -16,16 +16,16 @@ end
 iClipSMCurr=1;
 
 % figure out the new training status
-trainStatus=determineTrainStatus(expDirName,clipSMFNAbs);
+trainStatus=MotrModel.determineTrainStatus(expDirName,clipSMFNAbs);
 
 % write stuff to the userdata
 u.clipSMFNAbs=clipSMFNAbs;
 u.iClipSMCurr=iClipSMCurr;
 u.trainStatus=trainStatus;
-set(hFig,'userdata',u);
+%set(hFig,'userdata',u);
 
 % update the clipFN.mat
-saveClipFN(expDirName,u.clipFNAbs,clipSMFNAbs)
+MotrModel.saveClipFN(expDirName,u.clipFNAbs,clipSMFNAbs)
 
 % now update the GUI to reflect the status
 fnUpdateGUIStatus(hFig);

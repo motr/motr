@@ -1,17 +1,17 @@
-function fnAddClips(hFig, clipFNAbsNew, bAppend)
+function fnAddClips(self, clipFNAbsNew, bAppend)
 
 % Get the experiment info out of the figure.
-u=get(hFig,'userdata');
-expDirName=u.expDirName;
-clipFNAbs=u.clipFNAbs;
-iClipCurr=u.iClipCurr;
-trackStatus=u.trackStatus;
+model=get(self,'userdata');
+expDirName=model.expDirName;
+clipFNAbs=model.clipFNAbs;
+iClipCurr=model.iClipCurr;
+trackStatus=model.trackStatus;
 
 % figure out the tracking status of the new clips
 nClipNew=length(clipFNAbsNew);
 trackStatusNew=zeros(nClipNew,1);
 for i=1:nClipNew
-  trackStatusNew(i)=determineTrackStatus(expDirName,clipFNAbsNew{i});
+  trackStatusNew(i)=MotrModel.determineTrackStatus(expDirName,clipFNAbsNew{i});
 end
 
 % update the clips, depending on bAppend
@@ -25,15 +25,15 @@ else
 end
 
 % Save the new info into the userdata.
-u.clipFNAbs=clipFNAbs;
-u.trackStatus=trackStatus;
-u.iClipCurr=iClipCurr;
-set(hFig,'userdata',u);
+model.clipFNAbs=clipFNAbs;
+model.trackStatus=trackStatus;
+model.iClipCurr=iClipCurr;
+%set(hFig,'userdata',u);
 
 % Save the new info into the clipFN file
-saveClipFN(expDirName,clipFNAbs,u.clipSMFNAbs)
+MotrModel.saveClipFN(expDirName,clipFNAbs,model.clipSMFNAbs)
 
 % now update the GUI to reflect the status
-fnUpdateGUIStatus(hFig);
+fnUpdateGUIStatus(self);
 
 end

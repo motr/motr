@@ -16,7 +16,7 @@ fileName=fullfile(expDirName,'clipFN.mat');
 if exist(fileName,'file')
     % if clipFN.mat exists, try to load it
     try
-        [clipFNAbs,clipSMFNAbs]=loadClipFN(fileName,expDirName);
+        [clipFNAbs,clipSMFNAbs]=MotrModel.loadClipFN(fileName,expDirName);
         loadedClipFN=true;
     catch excp
         if strcmp(excp.identifier,'loadClipFN:wrongFormat')
@@ -59,11 +59,11 @@ if loadedClipFN
     else
         iClipSMCurr=-1;
     end
-    trainStatus=determineTrainStatus(expDirName,clipSMFNAbs);
+    trainStatus=MotrModel.determineTrainStatus(expDirName,clipSMFNAbs);
     nClip=length(clipFNAbs);
     trackStatus=zeros(nClip,1);
     for j=1:nClip
-        trackStatus(j)=determineTrackStatus(expDirName,clipFNAbs{j});
+        trackStatus(j)=MotrModel.determineTrackStatus(expDirName,clipFNAbs{j});
     end    
 else
     % if no clipFN.mat, init to defaults
@@ -84,7 +84,7 @@ u.iClipCurr=iClipCurr;
 u.iClipSMCurr=iClipSMCurr;
 u.trainStatus=trainStatus; 
 u.trackStatus=trackStatus; 
-set(hFig,'userdata',u);
+%set(hFig,'userdata',u);
 
 % now update the GUI to reflect the status
 fnUpdateGUIStatus(hFig);
