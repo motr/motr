@@ -1,12 +1,12 @@
-function fnWaitForAnyTrackFile(hFig, expDirName, fnClip)
+function fnWaitForAnyTrackFile(self, expDirName, fnClip)
 
 nClip = length(fnClip);
 bExist = false;
 while true
   for i=1:nClip
-    if fnExistTrackFile(expDirName, fnClip{i})
+    if MotrModel.fnExistTrackFile(expDirName, fnClip{i})
       %fnUpdateStatus(handles, 'expClipStatus', iClip, 4);
-      fnSetClipTrackStatusCode(hFig, i, 4);  % means done
+      fnSetClipTrackStatusCode(self, i, 4);  % means done
       bExist = true;
     end
   end

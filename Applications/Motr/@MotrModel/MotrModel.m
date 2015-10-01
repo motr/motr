@@ -353,6 +353,14 @@ classdef MotrModel < handle
             % fnUpdateStatus(handles, 2, 4);
         end  % function
         
+      function bExist = fnExistTrackFile(sExpName, sExperimentClip)
+          sResultsDir = fullfile(sExpName, 'Results');
+          sTracksDir = fullfile(sResultsDir, 'Tracks');
+          [~, sClipName] = fileparts(sExperimentClip);
+          sTrackFile = fullfile(sTracksDir, [sClipName '_tracks.mat']);
+          bExist = exist(sTrackFile, 'file');
+      end
+        
     end  % static methods
     
     

@@ -80,6 +80,13 @@
         LoseMouseReductionInImageCorrelation = "-0.01"
    > </Module>
 
+   <Module Name = "Detection"
+        MajorAxisMax = "55"
+        MajorAxisMin = "18"
+        MinorAxisMin = "10"
+        MinorAxisMax = "23"
+   > </Module>
+
 </Modules>
 
 </Config>
