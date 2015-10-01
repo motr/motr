@@ -29,13 +29,8 @@ classdef MotrModel < handle
             self.expSelected=false;
             self.clusterMode=false;            
             
-            % Determine the root Motr directory
-            thisFileName=mfilename('fullpath');
-            thisDirName=fileparts(thisFileName);
-            thisDirParts=split_on_filesep(thisDirName);
-              % a cell array with each dir an element
-            mouseStuffRootParts=thisDirParts(1:end-2);
-            g_strMouseStuffRootDirName=combine_with_filesep(mouseStuffRootParts);
+            % Set the root Motr directory global
+            g_strMouseStuffRootDirName=motrRootDirName();
             
 %             % Load various algorithm parameters from the XML file
 %             parameterFileNameAbs = fullfile(g_strMouseStuffRootDirName, ...
@@ -82,7 +77,7 @@ classdef MotrModel < handle
                 return
             end
             try
-                MotrModel.saveClipFN(self.expDirName, self.clipFNAbs , self.clipSNFNAbs, value) ;
+                MotrModel.saveClipFN(self.expDirName, self.clipFNAbs , self.clipSMFNAbs, value) ;
             catch me
                 err=MException('motr:unableToSaveUpdatedExperimentInfo', ...
                                'Unable to save updated experiment info: %s', ...
@@ -97,6 +92,7 @@ classdef MotrModel < handle
             % tracking files, update trainStatus, trackStatus here.
             % But that's a whole can of worms...
             self.changed() ;
+            err=[];
         end  % function
     end
     

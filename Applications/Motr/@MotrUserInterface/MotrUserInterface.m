@@ -733,8 +733,8 @@ classdef MotrUserInterface < handle
             end
             
             % Set the processing mode radiobuttons
-            set(self.localModeRadiobutton_ , 'Value', ~clusterMode);
-            set(self.clusterModeRadiobutton_, 'Value',  clusterMode);
+            set(self.localModeRadiobutton_  , 'Value', ~clusterMode) ;
+            set(self.clusterModeRadiobutton_, 'Value',  clusterMode) ;
             
             % if no experiment, set things to default values and exit
             if ~expSelected ,
@@ -746,13 +746,15 @@ classdef MotrUserInterface < handle
                 set(self.singleMouseClipsListbox_, 'String', {''});
                 set(self.experimentClipsListbox_, 'Value', 1);
                 set(self.experimentClipsListbox_, 'String', {''});
-                %C = fnGetColorCode();
-                %set(self.trainButton_, 'BackgroundColor', C(1,:));
-                %set(self.trackButton_, 'BackgroundColor', C(1,:));
+                C = MotrUserInterface.fnGetColorCode() ;
+                set(self.trainButton_, 'BackgroundColor', C(1,:));
+                set(self.trackButton_, 'BackgroundColor', C(1,:));
                 set(self.trainButton_, 'Enable', 'off');
                 set(self.trackButton_, 'Enable', 'off');
                 set(self.resultsButton_, 'Enable', 'off');
                 set(self.changeParameterFileNameButton_, 'Enable', 'off');
+                set(self.singleMouseClipsListbox_, 'Enable', 'off');
+                set(self.experimentClipsListbox_, 'Enable', 'off');
                 return
             end
             
@@ -782,6 +784,7 @@ classdef MotrUserInterface < handle
             end
 
             % update the single-mouse clips
+            set(self.singleMouseClipsListbox_, 'Enable', 'on');
             set(self.singleMouseClipsListbox_, 'String', clipSMFNAbs);
             set(self.singleMouseClipsListbox_, 'Value', max(1,iClipSMCurr));
 
@@ -790,6 +793,7 @@ classdef MotrUserInterface < handle
             clipListString=MotrUserInterface.colorizeClips(clipFNAbs,trackStatus,iClipCurr);
 
             % update the clip listbox
+            set(self.experimentClipsListbox_, 'Enable', 'on');
             set(self.experimentClipsListbox_, 'String', clipListString);
             set(self.experimentClipsListbox_, 'Value', max(1,iClipCurr));  % setting this to -1 causes listbox to not be rendered, sometimes
 
@@ -946,7 +950,7 @@ classdef MotrUserInterface < handle
                %acClipName = cellstr(get(hObject, 'String'));
                val = get(self.experimentClipsListbox_, 'Value');
                %fnUpdateStatus(handles, 'acExperimentClips', val);
-               fnDeleteClip(self,val);
+               self.model_.fnDeleteClip(self,val);
             end
         end
         

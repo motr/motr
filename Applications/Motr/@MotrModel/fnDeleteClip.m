@@ -1,11 +1,11 @@
-function fnDeleteClip(hFig, iClip)
+function fnDeleteClip(self, iClip)
 
 % Get the experiment info out of the figure.
-u=get(hFig,'userdata');
-expDirName=u.expDirName;
-clipFNAbs=u.clipFNAbs;
-iClipCurr=u.iClipCurr;
-trackStatus=u.trackStatus;
+%model=get(self,'userdata');
+expDirName=self.expDirName;
+clipFNAbs=self.clipFNAbs;
+iClipCurr=self.iClipCurr;
+trackStatus=self.trackStatus;
 
 % Want to know how many clips before deletion
 nClipBefore=length(clipFNAbs);
@@ -22,15 +22,16 @@ elseif iClipCurr==nClipBefore
 end
 
 % Save the new info into the userdata.
-u.clipFNAbs=clipFNAbs;
-u.trackStatus=trackStatus;
-u.iClipCurr=iClipCurr;
+self.clipFNAbs=clipFNAbs;
+self.trackStatus=trackStatus;
+self.iClipCurr=iClipCurr;
 %set(hFig,'userdata',u);
 
 % Save the new info into the clipFN file
-MotrModel.saveClipFN(expDirName,clipFNAbs,u.clipSMFNAbs)
+MotrModel.saveClipFN(expDirName,clipFNAbs,self.clipSMFNAbs,self.getParameterFileNameAbs())
 
 % now update the GUI to reflect the status
-fnUpdateGUIStatus(hFig);
+%fnUpdateGUIStatus(self);
+self.changed();
 
 end
