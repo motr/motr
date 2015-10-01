@@ -10,7 +10,7 @@ trackStatus(iClip)=newStatus;
 
 % write it back to the fig
 u.trackStatus=trackStatus;
-set(hFig,'userdata',u);
+%set(hFig,'userdata',u);
 
 % now update the GUI to reflect the status
 fnUpdateGUIStatus(hFig);

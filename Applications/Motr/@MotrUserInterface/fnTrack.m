@@ -90,8 +90,8 @@ for i=1:nClip
       submitPost(i) = false;
     else
       % user said: "yes, rerun missing segments" 
-      jobFN=getJobFileNames(resultsDirName,clipFNAbsThis,aiNumJobs(i));
-      aiMissing{i} = findUnfinishedJobsOneClip(jobFN);
+      jobFN=MotrModel.getJobFileNames(resultsDirName,clipFNAbsThis,aiNumJobs(i));
+      aiMissing{i} = MotrModel.findUnfinishedJobsOneClip(jobFN);
       allJobsFinished=isempty(aiMissing{i});
       if allJobsFinished
         % no jobs are missing
@@ -203,8 +203,8 @@ if ~clusterMode
     %if aiSubmit(i,2)
     if submitPost(i)
       clipFNAbsThis = clipFNAbs{i};
-      jobFN=getJobFileNames(resultsDirName,clipFNAbsThis,aiNumJobs(i));
-      fnWaitForAllJobsToFinish(jobFN);
+      jobFN=MotrModel.getJobFileNames(resultsDirName,clipFNAbsThis,aiNumJobs(i));
+      MotrUserInterface.fnWaitForAllJobsToFinish(jobFN);
       strctMovieInfo = fnReadVideoInfo(clipFNAbsThis);
       [dummy, clipBaseName] = fileparts(clipFNAbsThis);  %#ok
       astrctTrackers = fnMergeJobs(strctMovieInfo, jobFN, []);
@@ -214,9 +214,9 @@ if ~clusterMode
                                'SequenceRAW');
       save(sRawTrackFile, 'astrctTrackers', 'strMovieFileName');
       astrctTrackers = ...
-        fnHouseIdentities(astrctTrackers, ...
-                          strctMovieInfo, ...
-                          classifiersFN);  %#ok
+        MotrModel.fnHouseIdentities(astrctTrackers, ...
+                                    strctMovieInfo, ...
+                                    classifiersFN);  %#ok
       sTrackFile = fullfile(tracksDirName, [clipBaseName '_tracks.mat']);
       save(sTrackFile, 'astrctTrackers', 'strMovieFileName');
       %fnUpdateStatus(handles, 'expClipStatus', i, 4);

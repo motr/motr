@@ -30,11 +30,8 @@ load('D:\Code\Janelia Farm\DataForFigures\DataForForegroundDetection.mat');
     DistToFloor = bwdist(~strctAdditionalInfo.strctBackground.m_a2bFloor);
     a2bCloseToFloor = DistToFloor < 20 & strctAdditionalInfo.strctBackground.m_a2bFloor;
     fnLog('Constract 20 pixels wide strech of floor at the edge of the cage', 3, a2bCloseToFloor);
-    global g_a2fDistToWall;
-    if isempty(g_a2fDistToWall)
-       g_a2fDistToWall = bwdist(strctAdditionalInfo.strctBackground.m_a2bFloor);
-    end
-    a2bCloseForWall = g_a2fDistToWall < 100 & ~strctAdditionalInfo.strctBackground.m_a2bFloor;
+    a2fDistToWall = bwdist(strctAdditionalInfo.strctBackground.m_a2bFloor);
+    a2bCloseForWall = a2fDistToWall < 100 & ~strctAdditionalInfo.strctBackground.m_a2bFloor;
     a2bCloseForWall(1:30,:) = false;
     fnLog('Constract 100 pixels wide strech of wall at the edge of the cage', 3, a2bCloseForWall);
     a2bMotionWall = a2fFrame < fLargeMotionRatioThresholdWall*strctAdditionalInfo.strctBackground.m_a2iMedian & a2bCloseForWall;

@@ -1,4 +1,4 @@
-function success=fnTrain(hFig)
+function success=fnTrain(self)
 
 global g_strctGlobalParam g_iLogLevel;  %#ok
 global g_bMouseHouse;
@@ -15,7 +15,7 @@ end
 success=true;
 
 % get the userdata
-u=get(hFig,'userdata');
+u=get(self,'userdata');
 
 % If there are no single-mouse clips, return
 clipSMFNAbs=u.clipSMFNAbs;
@@ -104,13 +104,13 @@ for i=1:nClip
       % local mode
       strctBootstrap=[];
       %fnLearnMouseIdentity(clipSMFNAbsThis, strctBootstrap, outputFN{i});
-      set(hFig,'pointer','watch');
+      set(self,'pointer','watch');
       drawnow('expose');  drawnow('update');
       try
        fnLearnMouseIdentity(clipSMFNAbsThis, strctBootstrap, outputFN{i});
       catch excp
         %excp.identifier
-        set(hFig,'pointer','arrow');
+        set(self,'pointer','arrow');
         drawnow('expose');  drawnow('update');
         if strcmp(excp.identifier,'fnLearnMouseIdentity:noReliableFrames') || ...
            strcmp(excp.identifier,'fnHOGFeaturesFromSMClip:noReliableFrames')
@@ -126,7 +126,7 @@ for i=1:nClip
           rethrow(excp);
         end
       end
-      set(hFig,'pointer','arrow');
+      set(self,'pointer','arrow');
       drawnow('expose');  drawnow('update');
     else
       % cluster mode
@@ -219,10 +219,10 @@ if bGenerateClassifier
     % local mode
     tuningDirName = fullfile(expDirName, 'Tuning');
     fnLog(['Training classifiers at ' tuningDirName]);
-    set(hFig,'pointer','watch');
+    set(self,'pointer','watch');
     drawnow('expose');  drawnow('update');  
     fnTrainTdistClassifiers(acVideoInfos, tuningDirName, tuningDirName);
-    set(hFig,'pointer','arrow');
+    set(self,'pointer','arrow');
     drawnow('expose');  drawnow('update');  
   else
     % cluster mode: submit an extra job that does the actual learning.
@@ -270,10 +270,10 @@ end
 % This makes sure the "Train" button doesn't get set to
 % red (i.e. completed) too soon.
 if clusterMode
-  set(hFig,'pointer','watch');
+  set(self,'pointer','watch');
   drawnow('expose');  drawnow('update');  
-  fnWaitForAllJobsToFinish(outputFN);  
-  set(hFig,'pointer','arrow');
+  MotrUserInterface.fnWaitForAllJobsToFinish(outputFN);  
+  set(self,'pointer','arrow');
   drawnow('expose');  drawnow('update');  
 end
 

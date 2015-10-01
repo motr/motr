@@ -76,6 +76,6 @@ strPath = fileparts(strOutputFile);
 if ~isempty(strPath) && ~exist(strPath,'dir')
   mkdir(strPath);
 end;
-save(strOutputFile,'strctIdentity','strMovieFileName');
+save(strOutputFile,'strctIdentity','strMovieFileName','-v7.3'); % Changed to use the -v7.3 switch, for saving larger file sizes [KMS, 2015-09-09]
 
 end

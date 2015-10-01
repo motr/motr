@@ -1,11 +1,11 @@
-function fnDeleteSingleMouseClip(hFig, iClipSM)
+function fnDeleteSingleMouseClip(self, iClipSM)
 
 % Get the experiment info out of the figure.
-u=get(hFig,'userdata');
-expDirName=u.expDirName;
-clipSMFNAbs=u.clipSMFNAbs;
-iClipSMCurr=u.iClipSMCurr;
-trainStatus=u.trainStatus;
+%self=get(ui,'userdata');
+expDirName=self.expDirName;
+clipSMFNAbs=self.clipSMFNAbs;
+iClipSMCurr=self.iClipSMCurr;
+trainStatus=self.trainStatus;
 
 % Want to know how many clips before deletion
 nClipSMBefore=length(clipSMFNAbs);
@@ -26,15 +26,16 @@ if nClipSMBefore==1
 end
 
 % Save the new info into the userdata.
-u.clipSMFNAbs=clipSMFNAbs;
-u.trainStatus=trainStatus;
-u.iClipSMCurr=iClipSMCurr;
-set(hFig,'userdata',u);
+self.clipSMFNAbs=clipSMFNAbs;
+self.trainStatus=trainStatus;
+self.iClipSMCurr=iClipSMCurr;
+%set(hFig,'userdata',u);
 
 % Save the new info into the clipFN file
-saveClipFN(expDirName,u.clipFNAbs,clipSMFNAbs);
+MotrModel.saveClipFN(expDirName,self.clipFNAbs,clipSMFNAbs,self.getParameterFileNameAbs());
 
 % now update the GUI to reflect the status
-fnUpdateGUIStatus(hFig);
+%fnUpdateGUIStatus(ui);
+self.changed() ;
 
 end
