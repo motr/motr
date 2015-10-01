@@ -6,6 +6,7 @@
 *.c text
 *.h text
 *.m text
+*.xml text
 
 # Files that alway have Unix-style line endings
 build text eol=lf
