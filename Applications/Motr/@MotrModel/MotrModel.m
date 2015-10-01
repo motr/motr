@@ -1,8 +1,12 @@
 classdef MotrModel < handle
     
+%     properties (Dependent=true)
+%         parameterFileNameAbs
+%     end
+    
     properties
         expSelected
-        expDirName        
+        expDirName
         clipFNAbs
         clipSMFNAbs
         iClipCurr
@@ -12,15 +16,33 @@ classdef MotrModel < handle
         clusterMode
     end
     
-    properties  % protected, at least in spirit
+    properties  % protected, in spirit
+        parameterFileNameAbs_
         userInterface_
     end
     
     methods
         function self=MotrModel()
+            global g_strMouseStuffRootDirName %g_strctGlobalParam
+            
             %fprintf('MotrModel::MotrModel()\n');
             self.expSelected=false;
             self.clusterMode=false;            
+            
+            % Determine the root Motr directory
+            thisFileName=mfilename('fullpath');
+            thisDirName=fileparts(thisFileName);
+            thisDirParts=split_on_filesep(thisDirName);
+              % a cell array with each dir an element
+            mouseStuffRootParts=thisDirParts(1:end-2);
+            g_strMouseStuffRootDirName=combine_with_filesep(mouseStuffRootParts);
+            
+%             % Load various algorithm parameters from the XML file
+%             parameterFileNameAbs = fullfile(g_strMouseStuffRootDirName, ...
+%                                             'Config', ...
+%                                             'Algorithms.xml') ;
+%             self.parameterFileNameAbs_ = parameterFileNameAbs ;
+%             g_strctGlobalParam = fnLoadAlgorithmsConfigXML(parameterFileNameAbs) ;
         end
         
         function delete(self)
@@ -41,10 +63,45 @@ classdef MotrModel < handle
                 self.userInterface_.modelChanged();
             end
         end
+        
+        function result = getParameterFileNameAbs(self)
+            result = self.parameterFileNameAbs_ ;
+        end
+        
+        function err=setParameterFileNameAbs(self, value)
+            global g_strctGlobalParam
+            %originalValue = self.parameterFileNameAbs_ ;
+            %originalParams = g_strctGlobalParam ;
+            try
+                params = fnLoadAlgorithmsConfigXML(value) ;
+            catch me
+                err=MException('motr:unableToLoadParameterFile', ...
+                               'Unable to load parameter file: %s', ...
+                               me.message) ;
+                self.changed() ;
+                return
+            end
+            try
+                MotrModel.saveClipFN(self.expDirName, self.clipFNAbs , self.clipSNFNAbs, value) ;
+            catch me
+                err=MException('motr:unableToSaveUpdatedExperimentInfo', ...
+                               'Unable to save updated experiment info: %s', ...
+                               me.message) ;
+                self.changed() ;
+                return
+            end
+            % if get here, all the "risky" operations succeeded
+            g_strctGlobalParam = params ;
+            self.parameterFileNameAbs_ = value ;
+            % Might make sense to clear out preexisting training and
+            % tracking files, update trainStatus, trackStatus here.
+            % But that's a whole can of worms...
+            self.changed() ;
+        end  % function
     end
     
     methods (Static=true)
-        function [clipFNAbs,clipSMFNAbs]=loadClipFN(fileName,expDirName)
+        function [clipFNAbs,clipSMFNAbs,parameterFileNameAbs]=loadClipFN(fileName,expDirName)
             % Loads the clip filename information from the given file.  If it's an
             % old-format file, uses expDirName to return the absolute paths.
 
@@ -84,6 +141,13 @@ classdef MotrModel < handle
                                'Maybe it''s in the old format?'], ...
                               fileName);
               throw(excp);
+            end
+
+            % get the parameterFileName absolute path, if present
+            if any(strcmp('parameterFileNameAbs',varName)) ,
+                parameterFileNameAbs = s.parameterFileNameAbs ;
+            else
+                parameterFileNameAbs = defaultParameterFileNameAbs() ;
             end
         end  % function        
         
@@ -194,10 +258,12 @@ classdef MotrModel < handle
             status=2;
         end  % function
         
-        function saveClipFN(expDirName,clipFNAbs,clipSMFNAbs)
+        function saveClipFN(expDirName,clipFNAbs,clipSMFNAbs,parameterFileNameAbs)
             % Stores the clip filename information in exp in the file. 
 
-            s=struct('clipFNAbs',{clipFNAbs},'clipSMFNAbs',{clipSMFNAbs});
+            s=struct('clipFNAbs',{clipFNAbs}, ...
+                     'clipSMFNAbs',{clipSMFNAbs}, ...
+                     'parameterFileNameAbs',{parameterFileNameAbs});
             fileName=fullfile(expDirName,'clipFN.mat');
             fnSaveAnonymous(fileName,s);
         end

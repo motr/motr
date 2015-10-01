@@ -1,7 +1,4 @@
-function setCurrentExperiment(hFig, expDirName)
-
-% get userdata
-u=get(hFig,'UserData');
+function setCurrentExperiment(self, expDirName)
 
 % % Get relevant info out of the handles structure
 % exp=handles.exp;
@@ -16,7 +13,7 @@ fileName=fullfile(expDirName,'clipFN.mat');
 if exist(fileName,'file')
     % if clipFN.mat exists, try to load it
     try
-        [clipFNAbs,clipSMFNAbs]=MotrModel.loadClipFN(fileName,expDirName);
+        [clipFNAbs,clipSMFNAbs,parameterFileNameAbs]=MotrModel.loadClipFN(fileName,expDirName);
         loadedClipFN=true;
     catch excp
         if strcmp(excp.identifier,'loadClipFN:wrongFormat')
@@ -41,52 +38,13 @@ if exist(fileName,'file')
     end
 else
     loadedClipFN=false;
+    clipFNAbs=[] ;
+    clipSMFNAbs=[];
+    parameterFileNameAbs=[];
 end
 
-% If we loaded clipFN.mat successfully, determine statuses
-if loadedClipFN    
-    % init iClipCurr
-    nClip=length(clipFNAbs);
-    if nClip>0
-        iClipCurr=1;
-    else
-        iClipCurr=-1;
-    end
-    % init iClipSMCurr
-    nClipSM=length(clipSMFNAbs);
-    if nClipSM>0
-        iClipSMCurr=1;
-    else
-        iClipSMCurr=-1;
-    end
-    trainStatus=MotrModel.determineTrainStatus(expDirName,clipSMFNAbs);
-    nClip=length(clipFNAbs);
-    trackStatus=zeros(nClip,1);
-    for j=1:nClip
-        trackStatus(j)=MotrModel.determineTrackStatus(expDirName,clipFNAbs{j});
-    end    
-else
-    % if no clipFN.mat, init to defaults
-    clipFNAbs=cell(0,1);
-    clipSMFNAbs=cell(0,1);
-    iClipCurr=-1;
-    iClipSMCurr=-1;
-    trainStatus=1;
-    trackStatus=zeros(0,1);
-end
-
-% save to the userdata
-u.expSelected=true;
-u.expDirName=expDirName;
-u.clipFNAbs=clipFNAbs;
-u.clipSMFNAbs=clipSMFNAbs;
-u.iClipCurr=iClipCurr;
-u.iClipSMCurr=iClipSMCurr;
-u.trainStatus=trainStatus; 
-u.trackStatus=trackStatus; 
-%set(hFig,'userdata',u);
-
-% now update the GUI to reflect the status
-fnUpdateGUIStatus(hFig);
+% set the current experiment in the model
+model = self.model_ ;
+model.setCurrentExperiment(expDirName, loadedClipFN, clipFNAbs, clipSMFNAbs, parameterFileNameAbs) ;
 
 end

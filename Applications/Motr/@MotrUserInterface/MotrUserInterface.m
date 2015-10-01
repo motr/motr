@@ -20,8 +20,12 @@ classdef MotrUserInterface < handle
         singleMouseClipsLabelText_
         experimentClipsListbox_
         experimentClipsLabelText_
-        chooseExperimentButton_
-        experimentNameText_
+        parameterFileNameLabelText_        
+        parameterFileNameEdit_        
+        changeParameterFileNameButton_
+        chooseExperimentDirNameButton_
+        experimentDirNameLabelText_
+        experimentDirNameEdit_
         processingModeButtonGroup_
         clusterModeRadiobutton_
         localModeRadiobutton_
@@ -31,7 +35,7 @@ classdef MotrUserInterface < handle
         function self=MotrUserInterface()
             %fprintf('MotrUserInterface::MotrUserInterface()\n');
             
-            global g_strctGlobalParam g_bMouseHouse g_bVERBOSE g_iLogLevel;
+            global g_bMouseHouse g_bVERBOSE g_iLogLevel;
             global g_CaptainsLogDir g_logImIndex;
             
             g_bMouseHouse = true;
@@ -42,13 +46,13 @@ classdef MotrUserInterface < handle
             % Want to store a global that contains the root directory for
             % all the Ohayons code---this allows us to be independent of what
             % the current working directory is.
-            global g_strMouseStuffRootDirName;
-            thisFileName=mfilename('fullpath');
-            thisDirName=fileparts(thisFileName);
-            thisDirParts=split_on_filesep(thisDirName);
-              % a cell array with each dir an element
-            mouseStuffRootParts=thisDirParts(1:end-3);
-            g_strMouseStuffRootDirName=combine_with_filesep(mouseStuffRootParts);
+%             global g_strMouseStuffRootDirName;
+%             thisFileName=mfilename('fullpath');
+%             thisDirName=fileparts(thisFileName);
+%             thisDirParts=split_on_filesep(thisDirName);
+%               % a cell array with each dir an element
+%             mouseStuffRootParts=thisDirParts(1:end-3);
+%             g_strMouseStuffRootDirName=combine_with_filesep(mouseStuffRootParts);
 
             if g_iLogLevel > 0
                g_logImIndex = 0;
@@ -80,13 +84,14 @@ classdef MotrUserInterface < handle
             %updateLocalClusterRadiobuttons(hObject);
             %updateEnablementOfLocalClusterRadiobuttons(hObject);
 
-            % Load various algorithm parameters from the XML file
-            g_strctGlobalParam = ...
-                fnLoadAlgorithmsConfigXML(fullfile(g_strMouseStuffRootDirName, ...
-                                                   'Config','Algorithms.xml'));
-            % g_strctGlobalParam=fnLoadAlgorithmsConfigNative();
-            %   % eliminate dependence on XML file.  Checked that these assign the same
-            %   % value to g_strctGlobalParam.  ALT, 2012-01-09
+%             % Load various algorithm parameters from the XML file
+%             g_strctGlobalParam = ...
+%                 fnLoadAlgorithmsConfigXML(fullfile(g_strMouseStuffRootDirName, ...
+%                                                    'Config','Algorithms.xml'));
+%                                                
+%             % g_strctGlobalParam=fnLoadAlgorithmsConfigNative();
+%             %   % eliminate dependence on XML file.  Checked that these assign the same
+%             %   % value to g_strctGlobalParam.  ALT, 2012-01-09
 
             if exist('MouseTrackProj.prj','file')
                rmpath(genpath(fullfile(g_strMouseStuffRootDirName,'Deploy')));
@@ -135,29 +140,87 @@ classdef MotrUserInterface < handle
             %screenWidth = screenSize(3) ;
             screenHeight = screenSize(4) ;
             
-            figureWidth = 650 ;
-            figureHeight = 344 ;
+            labelTextHeight = 14 ;
+            extentToPositionWidth = 0 ;
+            labelToEditSpaceWidth = 2 ;
+            editHeight = 20 ;
+            
+            operationsPanelWidth = 122 ;
+            
+            experimentPanelLeftPadWidth = 18 ;
+            experimentPanelRightPadWidth = 10 ;
+            %experimentDirNameEditHeight = editHeight ;            
+            chooseExperimentDirNameButtonWidth = 76 ;
+            chooseExperimentDirNameButtonHeight = 24 ;            
+            experimentContentWidth = 600 ;
+            experimentClipsListboxWidth = experimentContentWidth ;
+            experimentClipsListboxHeight = 100 ;
+            singleMouseClipsListboxWidth = experimentContentWidth ;
+            singleMouseClipsListboxHeight = 100 ;
+            heightBetweenExperimentClipsAndSingleMouseClips = 10 ;
+            heightBetweenSingleMouseClipsAndParameterFileName = 14 ;
+            heightBetweenParameterFileNameAndExperimentDirName = 8 ;
+            experimentPanelBottomPadHeight = 14 ;
+            experimentPanelTopPadHeight = 6 ;
+            heightOfPanelLabelShim = 22 ;
+            listboxLabelOffsetHeight = 2 ;
+            changeParameterFileNameButtonWidth = 76 ;
+            changeParameterFileNameButtonHeight = 24 ;            
+            widthBetweenParameterFileNameTextAndButton = 8 ;
+            widthBetweenExperimentDirNameTextAndButton = 8 ;
+            
+            parameterFileNameRowHeight = max([labelTextHeight editHeight changeParameterFileNameButtonHeight]) ;
+            experimentDirNameRowHeight = max([labelTextHeight editHeight chooseExperimentDirNameButtonHeight]) ;
+            
+            experimentPanelHeight = experimentPanelBottomPadHeight + ...
+                                    experimentClipsListboxHeight + ...
+                                    listboxLabelOffsetHeight + ...
+                                    labelTextHeight + ...
+                                    heightBetweenExperimentClipsAndSingleMouseClips+ ...
+                                    singleMouseClipsListboxHeight + ...
+                                    listboxLabelOffsetHeight + ...
+                                    labelTextHeight + ...
+                                    heightBetweenSingleMouseClipsAndParameterFileName + ...
+                                    parameterFileNameRowHeight + ...
+                                    heightBetweenParameterFileNameAndExperimentDirName + ...
+                                    experimentDirNameRowHeight + ...
+                                    experimentPanelTopPadHeight + ...
+                                    heightOfPanelLabelShim ;
+            experimentPanelWidth = experimentPanelLeftPadWidth + experimentContentWidth + experimentPanelRightPadWidth ;
+
+            figureLeftPad = 10 ;
+            figureRightPad = 10 ;
+            figureBottomPad = 10 ;
+            figureTopPad = 10 ;
+            interPanelWidth = 10 ;
+
+            experimentPanelXOffset = figureLeftPad + operationsPanelWidth + interPanelWidth ;  % 148
+            
+            %figureWidth = 650 ;
+            %figureHeight = 344 ;
+            figureWidth = figureLeftPad + operationsPanelWidth + interPanelWidth + experimentPanelWidth + figureRightPad;
+            figureHeight = figureBottomPad + experimentPanelHeight + figureTopPad ;            
             figureX = 100 ;
             figureY = screenHeight - figureHeight - 22 - 100;  % 22 is the approx title bar width
             
             %figureNormedMultiplier = [figureWidth figureHeight figureWidth figureHeight]
             
-            self.figureGH_ = figure(...
-            'Units','pixels',...
-            'Position',[figureX figureY figureWidth figureHeight],...
-            'Visible','on',...
-            'Color',get(0,'defaultfigureColor'),...
-            'IntegerHandle','off',...
-            'MenuBar','none',...
-            'Name','Motr 1.04',...
-            'NumberTitle','off',...
-            'PaperPosition',get(0,'defaultfigurePaperPosition'),...
-            'InvertHardcopy',get(0,'defaultfigureInvertHardcopy'),...
-            'ScreenPixelsPerInchMode','manual',...
-            'Tag','figure1',...
-            'Resize','off', ...
-            'CloseRequestFcn',@(source,event)(self.closeRequested()), ...
-            'UserData',[]);
+            self.figureGH_ = ...
+                figure('Units','pixels',...
+                       'Position',[figureX figureY figureWidth figureHeight],...
+                       'Visible','on',...
+                       'Color',get(0,'defaultfigureColor'),...
+                       'IntegerHandle','off',...
+                       'MenuBar','none',...
+                       'Name','Motr 1.04',...
+                       'NumberTitle','off',...
+                       'PaperPosition',get(0,'defaultfigurePaperPosition'),...
+                       'InvertHardcopy',get(0,'defaultfigureInvertHardcopy'),...
+                       'ScreenPixelsPerInchMode','manual',...
+                       'Tag','motr',...
+                       'Resize','off', ...
+                       'CloseRequestFcn',@(source,event)(self.closeRequested()), ...
+                       'UserData',[]);
 %            'HandleVisibility','callback',...
 
                         
@@ -171,7 +234,7 @@ classdef MotrUserInterface < handle
             'FontUnits',get(0,'defaultuipanelFontUnits'),...
             'Units','pixels',...
             'Title','Operations',...
-            'Position',[10          144          122          183],...
+            'Position',[figureLeftPad          144          operationsPanelWidth          183],...
             'Clipping','off',...
             'Tag','hOperations');
 
@@ -226,25 +289,9 @@ classdef MotrUserInterface < handle
             'FontUnits',get(0,'defaultuipanelFontUnits'),...
             'Units','pixels',...
             'Title','Experiment',...
-            'Position',[148           10          492          320],...
+            'Position',[experimentPanelXOffset           figureBottomPad          experimentPanelWidth          experimentPanelHeight],...
             'Clipping','off',...
             'Tag','hExperiment');
-
-            leftPadWidth = 18 ;
-            experimentNameTextWidth = 374 ;
-            experimentNameTextHeight = 20 ;
-            chooseExperimentNameButtonWidth = 76 ;
-            chooseExperimentNameButtonHeight = 24 ;            
-            experimentContentWidth = 460 ;
-            experimentClipsListboxWidth = experimentContentWidth ;
-            experimentClipsListboxHeight = 100 ;
-            singleMouseClipsListboxWidth = experimentContentWidth ;
-            singleMouseClipsListboxHeight = 100 ;
-            heightBetweenExperimentClipsAndSingleMouseClips = 10 ;
-            heightBetweenSingleMouseClipsAndExperimentName = 16 ;
-            labelTextHeight = 14 ;
-            bottomPadHeight = 14 ;
-            listboxLabelOffsetHeight = 2 ;
             
             self.experimentClipsListbox_ = uicontrol(...
             'Parent',self.experimentPanel_,...
@@ -253,21 +300,21 @@ classdef MotrUserInterface < handle
             'String',blanks(0),...
             'Style','listbox',...
             'Value',1,...
-            'Position',[leftPadWidth bottomPadHeight experimentClipsListboxWidth experimentClipsListboxHeight],...
+            'Position',[experimentPanelLeftPadWidth experimentPanelBottomPadHeight experimentClipsListboxWidth experimentClipsListboxHeight],...
             'BackgroundColor',[1 1 1],...
             'Callback',@(hObject,eventdata)(self.hExperimentClipsListbox_Callback()),...
             'Children',[],...
             'KeyPressFcn',@(hObject,eventdata)(self.hExperimentClipsListbox_KeyPressFcn(eventdata)),...
             'Tag','hExperimentClipsListbox');
             
-            experimentClipsLabelTextYOffset = bottomPadHeight+experimentClipsListboxHeight+listboxLabelOffsetHeight ;
+            experimentClipsLabelTextYOffset = experimentPanelBottomPadHeight+experimentClipsListboxHeight+listboxLabelOffsetHeight ;
             self.experimentClipsLabelText_ = uicontrol(...
             'Parent',self.experimentPanel_,...
             'FontUnits',get(0,'defaultuicontrolFontUnits'),...
             'Units','pixels',...
             'String','Experiment Clips',...
             'Style','text',...
-            'Position',[leftPadWidth experimentClipsLabelTextYOffset experimentClipsListboxWidth labelTextHeight],...
+            'Position',[experimentPanelLeftPadWidth experimentClipsLabelTextYOffset experimentClipsListboxWidth labelTextHeight],...
             'Children',[],...
             'HorizontalAlignment','left', ...
             'Tag','hExperimentClipsText',...
@@ -282,7 +329,7 @@ classdef MotrUserInterface < handle
             'String',blanks(0),...
             'Style','listbox',...
             'Value',1,...
-            'Position',[leftPadWidth singleMouseClipsListboxYOffset singleMouseClipsListboxWidth singleMouseClipsListboxHeight],...
+            'Position',[experimentPanelLeftPadWidth singleMouseClipsListboxYOffset singleMouseClipsListboxWidth singleMouseClipsListboxHeight],...
             'BackgroundColor',[1 1 1],...
             'Callback',@(hObject,eventdata)(self.hSingleMouseListbox_Callback()),...
             'Children',[],...
@@ -296,44 +343,114 @@ classdef MotrUserInterface < handle
             'Units','pixels',...
             'String','Single Mouse Clips',...
             'Style','text',...
-            'Position',[leftPadWidth singleMouseClipsLabelTextYOffset singleMouseClipsListboxWidth labelTextHeight],...
+            'Position',[experimentPanelLeftPadWidth singleMouseClipsLabelTextYOffset singleMouseClipsListboxWidth labelTextHeight],...
             'Children',[],...
             'HorizontalAlignment','left', ...
             'Tag','hsingleMouseClipsText',...
             'FontWeight','bold');
 %            'BackgroundColor',[0 1 1],...
 
-            experimentNameTextYOffset = singleMouseClipsLabelTextYOffset + labelTextHeight + heightBetweenSingleMouseClipsAndExperimentName ;
-            self.experimentNameText_ = uicontrol(...
-            'Parent',self.experimentPanel_,...
-            'FontUnits',get(0,'defaultuicontrolFontUnits'),...
-            'Units','pixels',...
-            'HorizontalAlignment','left',...
-            'String','No experiment selected',...
-            'Style','text',...
-            'Position',[leftPadWidth experimentNameTextYOffset experimentNameTextWidth experimentNameTextHeight],...
-            'BackgroundColor',[1 1 1],...
-            'Children',[],...
-            'Tag','experimentNameText',...
-            'FontAngle','italic');
-            
-            chooseExperimentButtonXOffset = leftPadWidth + experimentContentWidth - chooseExperimentNameButtonWidth ;  % flush right
-            chooseExperimentButtonYOffset = experimentNameTextYOffset - (chooseExperimentNameButtonHeight-experimentNameTextHeight)/2 ;
-              % center the button on the text field vertically
-              
-            
-            self.chooseExperimentButton_ = uicontrol(...
-            'Parent',self.experimentPanel_,...
-            'FontUnits',get(0,'defaultuicontrolFontUnits'),...
-            'Units','pixels',...
-            'String','Choose',...
-            'Position',[chooseExperimentButtonXOffset chooseExperimentButtonYOffset chooseExperimentNameButtonWidth chooseExperimentNameButtonHeight],...
-            'Callback',@(hObject,eventdata)(self.chooseButtonActuated()),...
-            'Children',[],...
-            'Tag','chooseExperimentButton');
-%            'Callback',@(hObject,eventdata)MouseHouse_export('chooseExperimentButton_Callback',hObject,eventdata,guidata(hObject)),...
-                        
-            
+            % Parameter file name row
+            parameterFileNameRowYOffset = singleMouseClipsLabelTextYOffset + labelTextHeight + heightBetweenSingleMouseClipsAndParameterFileName ;
+            parameterFileNameLabelTextYOffset = ...
+                parameterFileNameRowYOffset + ...
+                (parameterFileNameRowHeight-labelTextHeight)/2 ;
+            self.parameterFileNameLabelText_ = ...
+                uicontrol('Parent',self.experimentPanel_,...
+                          'Style','text',...
+                          'Units','pixels',...
+                          'HorizontalAlignment','left',...
+                          'String','Parameter File:',...
+                          'Tag','parameterFileNameEdit');
+            parameterFileNameLabelTextExtent = get(self.parameterFileNameLabelText_,'Extent') ;
+            parameterFileNameLabelTextExtentWidth = parameterFileNameLabelTextExtent(3) ;
+            parameterFileNameLabelTextWidth = parameterFileNameLabelTextExtentWidth + extentToPositionWidth ;
+            set(self.parameterFileNameLabelText_, ...
+                'Position',[experimentPanelLeftPadWidth parameterFileNameLabelTextYOffset parameterFileNameLabelTextWidth labelTextHeight]);
+                      
+            parameterFileNameEditXOffset = experimentPanelLeftPadWidth + parameterFileNameLabelTextWidth + labelToEditSpaceWidth ; 
+            parameterFileNameEditYOffset = ...
+                parameterFileNameRowYOffset + ...
+                (parameterFileNameRowHeight-editHeight)/2 ;
+            parameterFileNameEditWidth = ...
+                experimentContentWidth - ...
+                (parameterFileNameLabelTextWidth + labelToEditSpaceWidth + changeParameterFileNameButtonWidth + widthBetweenParameterFileNameTextAndButton) ;
+            self.parameterFileNameEdit_ = ...
+                uicontrol('Parent',self.experimentPanel_,...
+                          'Style','edit',...
+                          'Enable','off', ...
+                          'Units','pixels',...
+                          'HorizontalAlignment','left',...
+                          'String','',...
+                          'Position',[parameterFileNameEditXOffset parameterFileNameEditYOffset parameterFileNameEditWidth editHeight],...
+                          'Tag','parameterFileNameEdit', ...
+                          'BackgroundColor','w');
+                      
+            changeParameterFileNameButtonXOffset = parameterFileNameEditXOffset + parameterFileNameEditWidth + widthBetweenParameterFileNameTextAndButton ;
+                % above is flush right
+            changeParameterFileNameButtonYOffset = parameterFileNameLabelTextYOffset - (changeParameterFileNameButtonHeight-labelTextHeight)/2 ;
+              % center the button on the text field vertically            
+            self.changeParameterFileNameButton_ = ...
+                uicontrol('Parent',self.experimentPanel_,...
+                          'Units','pixels',...
+                          'String','Change',...
+                          'Position',[changeParameterFileNameButtonXOffset changeParameterFileNameButtonYOffset ...
+                                      changeParameterFileNameButtonWidth changeParameterFileNameButtonHeight], ...
+                          'Callback',@(hObject,eventdata)(self.changeParameterFileNameButtonActuated()), ...
+                          'Tag','changeParameterFileNameButton');
+                      
+            % Experiment directory name row  
+            experimentDirNameRowYOffset = parameterFileNameRowYOffset + parameterFileNameRowHeight + heightBetweenParameterFileNameAndExperimentDirName ;
+            experimentDirNameLabelTextYOffset = ...
+                experimentDirNameRowYOffset + ...
+                (experimentDirNameRowHeight-labelTextHeight)/2 ;
+            self.experimentDirNameLabelText_ = ...
+                uicontrol('Parent',self.experimentPanel_,...
+                          'Style','text',...
+                          'Units','pixels',...
+                          'HorizontalAlignment','left',...
+                          'String','Experiment Directory:',...
+                          'Tag','experimentDirNameEdit');
+            experimentDirNameLabelTextExtent = get(self.experimentDirNameLabelText_,'Extent') ;
+            experimentDirNameLabelTextExtentWidth = experimentDirNameLabelTextExtent(3) ;
+            experimentDirNameLabelTextWidth = experimentDirNameLabelTextExtentWidth + extentToPositionWidth ;
+            set(self.experimentDirNameLabelText_, ...
+                'Position',[experimentPanelLeftPadWidth experimentDirNameLabelTextYOffset experimentDirNameLabelTextWidth labelTextHeight]);
+                      
+            experimentDirNameEditXOffset = experimentPanelLeftPadWidth + experimentDirNameLabelTextWidth + labelToEditSpaceWidth ; 
+            experimentDirNameEditYOffset = ...
+                experimentDirNameRowYOffset + ...
+                (experimentDirNameRowHeight-editHeight)/2 ;
+            experimentDirNameEditWidth = ...
+                experimentContentWidth - ...
+                (experimentDirNameLabelTextWidth + labelToEditSpaceWidth + chooseExperimentDirNameButtonWidth + widthBetweenExperimentDirNameTextAndButton) ;
+            self.experimentDirNameEdit_ = ...
+                uicontrol('Parent',self.experimentPanel_,...
+                          'Style','edit',...
+                          'Enable','off', ...
+                          'Units','pixels',...
+                          'HorizontalAlignment','left',...
+                          'String','No experiment selected',...
+                          'Position',[experimentDirNameEditXOffset experimentDirNameEditYOffset experimentDirNameEditWidth editHeight],...
+                          'Tag','experimentDirNameEdit', ...
+                          'BackgroundColor','w', ...
+                          'FontAngle','italic');
+                      
+            chooseExperimentDirNameButtonXOffset = experimentDirNameEditXOffset + experimentDirNameEditWidth + widthBetweenExperimentDirNameTextAndButton ;
+                % above is flush right
+            chooseExperimentDirNameButtonYOffset = experimentDirNameRowYOffset + experimentDirNameRowHeight/2 - chooseExperimentDirNameButtonHeight/2 ;
+              % center the button in the row vertically            
+            self.chooseExperimentDirNameButton_ = ...
+                uicontrol('Parent',self.experimentPanel_,...
+                          'Units','pixels',...
+                          'String','Change',...
+                          'Position',[chooseExperimentDirNameButtonXOffset chooseExperimentDirNameButtonYOffset ...
+                                      chooseExperimentDirNameButtonWidth chooseExperimentDirNameButtonHeight], ...
+                          'Callback',@(hObject,eventdata)(self.chooseExperimentDirNameButtonActuated()), ...
+                          'Tag','chooseExperimentDirNameButton');
+
+                      
+                      
             %
             % Processing Mode panel
             %
@@ -407,26 +524,27 @@ classdef MotrUserInterface < handle
 
             % get userdata
             %u=get(hFig,'userdata');
-            u = self.model_ ;
+            model = self.model_ ;
             
-            % If no experiment has been selected, prompt the user to select one.
-            expSelected=u.expSelected;
+            % If no experiment has been selected, just return
+            expSelected=model.expSelected;
             if ~expSelected
-              self.chooseExperiment_();
+                return
+                %self.chooseExperiment_();
             end
 
-            % need to re-load userdat, since fnChooseExperiment() might have changed it
-            u=get(self,'userdata');
-            expSelected=u.expSelected;
+%             % need to re-load userdat, since fnChooseExperiment() might have changed it
+%             u=get(self,'userdata');
+%             expSelected=u.expSelected;
 
-            % If there's _still_ no experiment selected (maybe the user hit "Cancel"),
-            % then just return
-            if ~expSelected
-              return;
-            end
+%             % If there's _still_ no experiment selected (maybe the user hit "Cancel"),
+%             % then just return
+%             if ~expSelected
+%               return;
+%             end
 
             % Get thee single-cmouse clip file names from the userdata.
-            clipSMFNAbs=u.clipSMFNAbs;
+            clipSMFNAbs=model.clipSMFNAbs;
 
             % If no single-mouse clips have been selected, prompt the user to select
             % them,
@@ -449,7 +567,7 @@ classdef MotrUserInterface < handle
             % Need to re-load userdata, since fnSelectSingleMouseClips() might have
             % changed it.
             %u=get(hFig,'userdata');
-            clipSMFNAbs=u.clipSMFNAbs;
+            clipSMFNAbs=model.clipSMFNAbs;
 
             % If there are no single-mouse clips selected, just return
             if isempty(clipSMFNAbs)
@@ -468,7 +586,7 @@ classdef MotrUserInterface < handle
             % If we get here, the user has opted to run training.
 
             % Set the training status to "in progress"
-            u.trainStatus=3;
+            model.trainStatus=3;
             %set(hFig,'userdata',u);
 
             % sync the view
@@ -481,7 +599,7 @@ classdef MotrUserInterface < handle
             % accordingly.
             if wasTrainingSuccessful ,
               %u=get(hFig,'userdata');
-              u.trainStatus=4;
+              model.trainStatus=4;
               %set(hFig,'userdata',u);
             end
 
@@ -598,61 +716,32 @@ classdef MotrUserInterface < handle
             set(self.localModeRadiobutton_ ,'Enable',onIff(isLinuxAndClusterExecutablePresent));
             set(self.clusterModeRadiobutton_ ,'Enable',onIff(isLinuxAndClusterExecutablePresent));            
 
-            % Update the processing mode widgets
+            % Get a few things out of the model, or use fallback values if
+            % no model
             if isempty(self.model_)
+                model=[];
+                expSelected = false ;
+                expDirName = [] ;
+                parameterFileNameAbs = [] ;
                 clusterMode=false;
             else
-                clusterMode=self.model_.clusterMode;
+                model = self.model_ ;
+                expSelected=model.expSelected;
+                expDirName=model.expDirName;                
+                parameterFileNameAbs = model.getParameterFileNameAbs() ;
+                clusterMode=model.clusterMode;
             end
+            
+            % Set the processing mode radiobuttons
             set(self.localModeRadiobutton_ , 'Value', ~clusterMode);
             set(self.clusterModeRadiobutton_, 'Value',  clusterMode);
             
-            % get the model out, and stuff
-            if isempty(self.model_) ,
-                expSelected = false ;
-            else
-                model = self.model_ ;
-                % Get relevant info out of the u structure
-                expSelected=model.expSelected;
-                %expDirName=u.expDirName;
-            end
-
-            % % update the listbox of experiment names
-            % if expSelected
-            %     expDirName=u.expDirName;
-            %     listItem={'--- Select a New Experiment ---' expDirName}';
-            % else
-            %     listItem={'--- Select a New Experiment ---'};
-            % end
-            % if expSelected
-            %     iCurrListItem=2;
-            % else
-            %     iCurrListItem=1;
-            % end    
-            % set(handles.hChooseExp, 'String', listItem);
-            % set(handles.hChooseExp, 'Value', iCurrListItem);
-
-            % update the experiment name
-            if expSelected ,
-                expDirName=model.expDirName;
-                set(self.experimentNameText_, 'String', expDirName);
-                set(self.experimentNameText_, 'FontAngle', 'normal');
-            else
-                set(self.experimentNameText_, 'String', 'No experiment selected');
-                set(self.experimentNameText_, 'FontAngle', 'italic');
-            end     
-
-            % unpack u, if there's an experiment
-            if expSelected ,
-                % get stuff out of u
-                clipFNAbs=model.clipFNAbs;
-                clipSMFNAbs=model.clipSMFNAbs;
-                iClipCurr=model.iClipCurr;
-                iClipSMCurr=model.iClipSMCurr;
-                trainStatus=model.trainStatus;
-                trackStatus=model.trackStatus;
-            else
-                % if no experiments, set things to default values and exit
+            % if no experiment, set things to default values and exit
+            if ~expSelected ,
+                set(self.experimentDirNameEdit_, 'String', 'No experiment selected');
+                set(self.experimentDirNameEdit_, 'FontAngle', 'italic');
+                set(self.parameterFileNameEdit_, 'String', 'None');
+                set(self.parameterFileNameEdit_, 'FontAngle', 'italic');
                 set(self.singleMouseClipsListbox_, 'Value', 1);
                 set(self.singleMouseClipsListbox_, 'String', {''});
                 set(self.experimentClipsListbox_, 'Value', 1);
@@ -663,10 +752,28 @@ classdef MotrUserInterface < handle
                 set(self.trainButton_, 'Enable', 'off');
                 set(self.trackButton_, 'Enable', 'off');
                 set(self.resultsButton_, 'Enable', 'off');
+                set(self.changeParameterFileNameButton_, 'Enable', 'off');
                 return
-            end    
+            end
+            
+            % if get here, there's an experiment
 
+            % update the experiment name
+            set(self.experimentDirNameEdit_, 'String', expDirName);
+            set(self.experimentDirNameEdit_, 'FontAngle', 'normal');
+            set(self.parameterFileNameEdit_, 'String', parameterFileNameAbs);
+            set(self.parameterFileNameEdit_, 'FontAngle', 'normal');
+            
+            % get stuff out of model
+            clipFNAbs = model.clipFNAbs ;
+            clipSMFNAbs = model.clipSMFNAbs ;
+            iClipCurr = model.iClipCurr ;
+            iClipSMCurr = model.iClipSMCurr ;
+            trainStatus = model.trainStatus ;
+            trackStatus = model.trackStatus ;
+                
             % Set Train and Track button enablement
+            set(self.changeParameterFileNameButton_, 'Enable', 'on');
             set(self.trainButton_, 'Enable', 'on');
             if trainStatus>=4
               set(self.trackButton_, 'Enable', 'on');
@@ -693,87 +800,72 @@ classdef MotrUserInterface < handle
                 set(self.resultsButton_, 'Enable', 'off');
             end
 
-%             % get the color code
-%             C = fnGetColorCode();
+            % get the color code
+            C = MotrUserInterface.fnGetColorCode();
 
-%             % update the training button color
-%             set(self.trainButton_, 'BackgroundColor', C(trainStatus,:));
+            % update the training button color
+            set(self.trainButton_, 'BackgroundColor', C(trainStatus,:));
 
-%             % update the tracking button color
-%             if isempty(clipFNAbs)
-%                 trackStatusOverall=1;
-%             else
-%                 trackStatusOverall=max(trackStatus);
-%             end
-%             set(self.trackButton_, 'BackgroundColor', ...
-%                                 C(trackStatusOverall,:));
+            % update the tracking button color
+            if isempty(clipFNAbs)
+                trackStatusOverall=1;
+            else
+                trackStatusOverall=max(trackStatus);
+            end
+            set(self.trackButton_, 'BackgroundColor', ...
+                                   C(trackStatusOverall,:));
 
             % Update the processing mode widgets
             clusterMode=model.clusterMode;
             set(self.localModeRadiobutton_ , 'Value', ~clusterMode);
-            set(self.clusterModeRadiobutton_, 'Value',  clusterMode);
-
-            isLinuxAndClusterExecutablePresent = islinux() && MotrUserInterface.isClusterExecutablePresent() ;
-            set(self.localModeRadiobutton_ ,'Enable',onIff(isLinuxAndClusterExecutablePresent));
-            set(self.clusterModeRadiobutton_ ,'Enable',onIff(isLinuxAndClusterExecutablePresent));            
+            set(self.clusterModeRadiobutton_, 'Value',  clusterMode);                
         end  % function
         
-        function chooseButtonActuated(self)
-            self.chooseExperiment_();
-            clear global g_a2fDistToWall; % make fnSegmentForeground2 re-compute g_a2fDistToWall
+        function changeParameterFileNameButtonActuated(self)
+            model = self.model_ ;
+            originalParameterFileNameAbs = model.getParameterFileNameAbs() ;            
+            originalParameterDirNameAbs = fileparts(originalParameterFileNameAbs) ;
+            [fileName,pathName] = ...
+                uigetfile({'*.xml', 'XML Files (*.xml)'; ...
+                           '*.*', 'All Files' }, ...
+                          'Change Parameter File...', ...
+                          originalParameterDirNameAbs);
+            if fileName==0 , % means user hit Cancel button
+                return
+            end
+            parameterFileNameAbs = fullfile(pathName,fileName) ;
+            err = model.setParameterFileNameAbs(parameterFileNameAbs) ;          
+            if ~isempty(err) ,
+                errordlg(err.message,'Error','modal');
+            end
         end
-
-        function chooseExperiment_(self)
-            global g_strctGlobalParam g_strMouseStuffRootDirName
-            
+        
+        function chooseExperimentDirNameButtonActuated(self)
             % get the userdata, see if there's a current experiment
             model = self.model_ ;
-            expSelected=model.expSelected;
-
+            wasExpSelectedAlready = model.expSelected ;
+            originalExpDirName = model.expDirName ;
+            
             % get the listbox selection
             %handles=guidata(hFig);
             %iList = get(handles.hChooseExp, 'Value');
 
-            sExp = uigetdir('.', ...
-                            'Choose directory of an experiment');
-            if sExp==0  % means user hit Cancel button
-              fnUpdateGUIStatus(self);
-              return;
+            newExpDirName = uigetdir('.', ...
+                                     'Choose directory of an experiment');
+            if newExpDirName==0 ,  % means user hit Cancel button
+              fnUpdateGUIStatus(self);  % doesn't seem necessary...
+              return
             end
             %sExp = fnConvertToAbsolutePath(sExp);
-            if expSelected
-                expDirName=model.expDirName;
-                if any(strcmp(sExp, expDirName))
+            if wasExpSelectedAlready ,
+                if isequal(newExpDirName, originalExpDirName) ,
                     % this means they selected the current experiment
-                    fnUpdateGUIStatus(self);
-                    %msgbox(['An experiment named ' sExp ' already exists']);
-                    return;
-
-                else
-                    % this means they selected a different experiment from the current
-                    % one--so check whether the user wants to use the same Config file.
-                    % [KMS, 2015-09-09]
-                    buttonName = questdlg('Do you want to use the same Configuration file?','config question','Yes','No, use the Default', 'No, let me choose a different one','Yes');
-
-                    if strcmp(buttonName,'No, use the Default') == 1;
-                        g_strctGlobalParam = ...
-                            fnLoadAlgorithmsConfigXML(fullfile(g_strMouseStuffRootDirName, ...
-                            'Config','Algorithms.xml'));
-                        % g_strctGlobalParam=fnLoadAlgorithmsConfigNative();
-                        %   % eliminate dependence on XML file.  Checked that these assign the same
-                        %   % value to g_strctGlobalParam.  ALT, 2012-01-09
-                    elseif strcmp(buttonName,'No, let me choose a different one') == 1;
-                        fileName = uigetfile('.xml','Please select a Configuration file',[g_strMouseStuffRootDirName '\Config']);
-                        g_strctGlobalParam = ...
-                            fnLoadAlgorithmsConfigXML(fullfile(g_strMouseStuffRootDirName, ...
-                            'Config',fileName));
-                    end
-                    clear buttonName fileName
-
+                    fnUpdateGUIStatus(self);  % is this necessary?
+                    return
                 end
             end
-            setCurrentExperiment(self, sExp);
-        end  % function
+            setCurrentExperiment(self, newExpDirName);
+        end
     
         function result = get(self,propertyName)
             result = self.(propertyName) ;
