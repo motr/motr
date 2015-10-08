@@ -342,13 +342,13 @@ classdef MotrModel < handle
             trackers = fnMergeJobs(clipThisInfo, jobFN, []);
             rawTrackFN = fullfile(resultsDirName, sClipName, 'SequenceRAW');
             %save(rawTrackFN, 'astrctTrackers', 'strMovieFileName');
-            saveTrackFile(rawTrackFN,trackers,clipFNAbsThis);
+            MotrModel.saveTrackFile(rawTrackFN,trackers,clipFNAbsThis);
             %astrctTrackers = fnHouseIdentities(astrctTrackers, clipThisInfo, ...
             %                                   classifiersFN);
             trackers=MotrModel.fnHouseIdentities(trackers, clipThisInfo, classifiersFN);
             trackFN = fullfile(tracksDirName, [sClipName '_tracks.mat']);
             %save(trackFN, 'astrctTrackers', 'strMovieFileName');
-            saveTrackFile(trackFN,trackers,clipFNAbsThis);
+            MotrModel.saveTrackFile(trackFN,trackers,clipFNAbsThis);
             fprintf('Done. Saved track file %s\n', trackFN);
             % fnUpdateStatus(handles, 2, 4);
         end  % function
@@ -361,6 +361,12 @@ classdef MotrModel < handle
           bExist = exist(sTrackFile, 'file');
       end
         
+      function saveTrackFile(fileName,trackers,clipFNAbs)
+          astrctTrackers=trackers; %#ok<NASGU>
+          strMovieFileName=clipFNAbs; %#ok<NASGU>
+          save(fileName, 'astrctTrackers', 'strMovieFileName');
+      end
+
     end  % static methods
     
     
