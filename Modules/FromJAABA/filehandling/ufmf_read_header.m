@@ -6,12 +6,11 @@ MAXNMEANSCACHED = 5;
 header.filename = filename;
 
 % open the file for reading, binary, little-endian
+fp = fopen( filename, 'rb' , 'ieee-le');
 if ~exist(filename,'file'),
   error('File %s does not exist',filename);
 end
-%fp = fopen( filename, 'rb' , 'ieee-le');
-fp = UfmfFileReader( filename, 'rb' , 'ieee-le');
-if ~fp.isValid() ,
+if fp < 0,
   error('File %s exists, but could not open it in rb mode',filename);
 end
 header.fid = fp;
