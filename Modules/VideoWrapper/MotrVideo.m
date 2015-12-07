@@ -59,6 +59,26 @@ classdef MotrVideo < handle
                 fps = (length(ts)-1)/(ts(end)-ts(1)) ;
                 self.nominalFrameRate_ = fps ;
                 self.frameTimeStamps_ = ts ;  % s
+            elseif strcmpi(strExt,'.mjpg') ,
+                % The headerInfo will differ depending on whether it's an
+                % index .mjpg or a non-indexed one, so look at the
+                % headerInfo to determine which it is...
+                if isfield(headerInfo,'timestamp') ,
+                  % This means an indexed .mjpg
+                  ts = headerInfo.timestamp ;
+                  fps = (length(ts)-1)/(ts(end)-ts(1)) ;
+                  self.nominalFrameRate_ = fps ;
+                  self.frameTimeStamps_ = ts ;  % s
+                elseif isfield(headerInfo,'FrameRate') ,  % this will be true, for instance, if get_readframe_fcn used VideoReader() to read the object
+                  % This means the .mjpg was not indexed, but was VideoReader-readable, in which
+                  % case headerinfo shoulds have a FrameRate field.
+                  fps = headerInfo.FrameRate ;
+                  self.nominalFrameRate_ = fps ;
+                  self.frameTimeStamps_ = (1/fps) * (0:(nFrames-1)) ;  % s
+                else
+                  error('motr:unableToDetermineFrameRate', ...
+                        'Unable to determine frame rate of video file %s', fileName);                  
+                end
             elseif isfield(headerInfo,'FrameRate') ,  % this will be true, for instance, if get_readframe_fcn used VideoReader() to read the object
                 % Assume that the file was VideoReader-readable, in which
                 % case headerinfo shoulds have a FrameRate field.
