@@ -58,6 +58,7 @@ void mexFunction(int nlhs, mxArray *plhs[],
   /* see remarks above about longjmp() */
   struct my_error_mgr jerr;
   int current_row;
+  double offsetAsDouble ;
   off_t offset;   /* On Unix, posix file offset type */
   char buffer[JMSG_LENGTH_MAX];
   /* int dims[2]; */
@@ -82,7 +83,12 @@ void mexFunction(int nlhs, mxArray *plhs[],
   strlen = mxGetM(prhs[0]) * mxGetN(prhs[0]) * sizeof(mxChar) + 1;
   filename = (char *) mxCalloc(strlen, sizeof(*filename));
   mxGetString(prhs[0],filename,strlen);  /* First argument is the filename */
-  offset = (off_t)mxGetScalar(prhs[1]);
+  offsetAsDouble = mxGetScalar(prhs[1]) ;  
+  if (offsetAsDouble<0)
+  {
+      mexErrMsgTxt("File offset must be nonnegative.");      
+  }  
+  offset = (off_t) offsetAsDouble ;
 
 /*  
   #ifdef _WIN64

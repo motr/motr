@@ -1,5 +1,5 @@
 function compileMexFunctions()
-% % Compile MEX files, and build cluster executable on Linux
+% Compile MEX files
 
 % figure out where the root of the Ohayon code is
 thisScriptFileName=mfilename('fullpath');
