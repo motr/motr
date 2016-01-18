@@ -591,6 +591,29 @@ classdef MotrUserInterface < handle
             expDirName=model.expDirName;
             clipFNAbs=model.clipFNAbs;
 
+            % Read in g_strctGlobalParam from disk, if it's not set already
+            global g_strctGlobalParam
+
+            % Define a local callback function, which will only be used once
+            function err = callbackForNewParameterFileName(parameterFileNameAbs)
+                err = model.setParameterFileNameAbs(parameterFileNameAbs) ;
+            end                  
+
+            if isempty(g_strctGlobalParam) ,
+                originalAbsoluteFileNameOfParameterFile = model.parameterFileNameAbs_ ;
+                fileNameFilter = {'*.xml', 'Extensible Markup Language Files (*.xml)'; ...
+                                  '*.*', 'All Files' } ;
+                [doesFileExist, ~, absoluteFileNameOfParameterFile] = ...
+                    MotrUserInterface.checkIfFileExistsAndAskUserToLocateIfNot(originalAbsoluteFileNameOfParameterFile , ...
+                                                                               fileNameFilter , ...
+                                                                               @callbackForNewParameterFileName) ;
+                if ~doesFileExist, 
+                    %success = false ;
+                    return
+                end                                             
+                g_strctGlobalParam = fnLoadAlgorithmsConfigXML(absoluteFileNameOfParameterFile) ;
+            end
+            
             % Generate the dir, file names we'll need.
             sTuningDir = fullfile(expDirName, 'Tuning');
             sDetectionFile = fullfile(sTuningDir, 'Detection.mat');
@@ -872,13 +895,36 @@ classdef MotrUserInterface < handle
         
         function hResults_Callback(self)
             %[iStatus, sExpName, aiNumJobs, acExperimentClips] = fnGetExpInfo();
-            u=get(self,'userdata');
-            expDirName=u.expDirName;
-            clipFNAbs=u.clipFNAbs;
-            iClipCurr=u.iClipCurr;
-            clipFNAbsThis=clipFNAbs{iClipCurr};
-            %clipInfo = fnReadVideoInfo(clipFNThis);
-            [dummy, clipBaseName] = fileparts(clipFNAbsThis);  %#ok
+            model=get(self,'userdata');
+            expDirName=model.expDirName;
+            clipFNAbs=model.clipFNAbs;
+            iClipCurr=model.iClipCurr;
+            absoluteFileNameOfSelectedClip = clipFNAbs{iClipCurr} ;
+            
+            % Before launching the results editor, make sure these
+            % files and folders exist.  If they don't, prompt the user to
+            % pick them, and modify the model accordingly
+            
+            function err = callbackForNewClipFileName(absoluteFileNameOfClipFile)
+                err = model.fnReplaceClipFileName(iClipCurr, absoluteFileNameOfClipFile);
+            end
+
+            % Make sure we can find the clip file
+            [doesClipFileExist, ~, absoluteFileNameOfSelectedClip] = ...
+                MotrUserInterface.checkIfFileExistsAndAskUserToLocateIfNot(absoluteFileNameOfSelectedClip, ...
+                                                                           {'*.avi', 'Microsoft AVI Videos (*.avi)'; ...
+                                                                            '*.mj2', 'Motion JPEG 2000 Videos (*.mj2)'; ...
+                                                                            '*.seq', 'Norpix Sequence Videos (*.seq)'; ...
+                                                                            '*.ufmf', 'Micro Fly Movie Format Videos (*.ufmf)'; ...
+                                                                            '*.*', 'All Files' }, ...
+                                                                           @callbackForNewClipFileName ) ;
+            if ~doesClipFileExist ,
+                return
+            end
+            
+            % Sort out the names of various things stored in the experiment
+            % directory.
+            [dummy, clipBaseName] = fileparts(absoluteFileNameOfSelectedClip);  %#ok
             tuningDirName = fullfile(expDirName, 'Tuning');
             jobsDirName = fullfile(expDirName, 'Jobs');
             resultsDirName = fullfile(expDirName, 'Results');
@@ -889,11 +935,13 @@ classdef MotrUserInterface < handle
               trackFN = fullfile(tracksDirName, [clipBaseName '.mat']);
             end
             classifiersFN = fullfile(tuningDirName, 'Identities.mat');
+            
+            % Finally, launch the results editor
             launchResultsEditor(jobsDirName, ...
                                 resultsDirName, ...
                                 tuningDirName, ...
                                 classifiersFN, ...
-                                clipFNAbsThis, ...
+                                absoluteFileNameOfSelectedClip, ...
                                 trackFN);
         end  % function
         
@@ -1013,6 +1061,79 @@ classdef MotrUserInterface < handle
                end
             end
         end
+        
+        function [doesFileExist, didUserLocateFileManually, absoluteFileName, callbackError] = ...
+          checkIfFileExistsAndAskUserToLocateIfNot(originalAbsoluteFileName, ...
+                                                   filter, ...
+                                                   callbackForNewFileName)                                                 
+            % Make sure we can find the file
+            if exist(originalAbsoluteFileName,'file') ,
+                % Easy case
+                doesFileExist = true ;
+                didUserLocateFileManually = false ;
+                absoluteFileName = originalAbsoluteFileName ;
+            else
+                [~, baseName, ext] = fileparts(originalAbsoluteFileName);
+                fileName = [baseName ext] ;
+                answer = questdlg(sprintf('The file %s is missing.  Would you like to locate it?', fileName) , ...
+                                  'Missing file', ...
+                                  'Yes','No','Cancel', ...
+                                  'Cancel');
+                if isequal(answer,'Yes') ,
+                    % User wants to locate the missing file
+                    [filename,pathname] = ...
+                        uigetfile(filter, ..., ...
+                                   'Locate File...', ...
+                                  originalAbsoluteFileName);
+                    if ischar(filename) ,
+                        % User picked a new file
+                        absoluteFileName = fullfile(pathname,filename) ;
+                        doesFileExist = exist(absoluteFileName,'file') ;
+                        didUserLocateFileManually = true ;
+                    else
+                        % User cancelled out of the file picker
+                        doesFileExist = false ;
+                        didUserLocateFileManually = false ;
+                        absoluteFileName = originalAbsoluteFileName ;
+                    end
+                else
+                    % User declined to locate the missing file
+                    doesFileExist = false ;
+                    didUserLocateFileManually = false ;
+                    absoluteFileName = originalAbsoluteFileName ;
+                end
+            end
+        
+            % Deal with success/failure
+            if doesFileExist ,
+                if didUserLocateFileManually ,
+                    % Do whatever might need doing with the new file name
+                    callbackError = callbackForNewFileName(absoluteFileName) ;
+                    if ~isempty(callbackError) ,
+                        errordlg(sprintf('There was a problem with the new file: %s',callbackError.message), ...
+                                 'Error','modal');
+                    end
+                else
+                    callbackError = [] ;
+                end
+            else
+                % Clip file doesn't exist
+                callbackError = [] ;
+                if didUserLocateFileManually ,
+                    % Strange case: The user picked a file, but it
+                    % failed to exist when checked.
+                    [~, baseName, ext] = fileparts(absoluteFileName);
+                    fileName = [baseName ext] ;
+                    uiwait(errordlg(sprintf('Unable to find file %s.',fileName), ...
+                                    'Error','modal'));
+                else
+                    % The file didn't exist, and the user declined to
+                    % locate one, or cancelled out of the file picker.
+                    % In this case, no need to throw up an error dialog.
+                end
+            end
+
+        end  % function
         
     end  % static methods
     

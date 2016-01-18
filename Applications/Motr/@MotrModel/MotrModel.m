@@ -254,14 +254,19 @@ classdef MotrModel < handle
             status=2;
         end  % function
         
-        function saveClipFN(expDirName,clipFNAbs,clipSMFNAbs,parameterFileNameAbs)
+        function err = saveClipFN(expDirName, clipFNAbs, clipSMFNAbs, parameterFileNameAbs)
             % Stores the clip filename information in exp in the file. 
 
             s=struct('clipFNAbs',{clipFNAbs}, ...
                      'clipSMFNAbs',{clipSMFNAbs}, ...
                      'parameterFileNameAbs',{parameterFileNameAbs});
             fileName=fullfile(expDirName,'clipFN.mat');
-            fnSaveAnonymous(fileName,s);
+            try
+                fnSaveAnonymous(fileName,s);
+                err = [] ;
+            catch me
+                err = me ;
+            end
         end
         
         function jobFN = getJobFileNames(resultsDirName, clipFN, nJobs)

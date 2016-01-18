@@ -30,7 +30,36 @@ classdef MotrVideo < handle
     
     methods
         function self = MotrVideo(fileName)
-            [readFrameFunction,nFrames,fid,headerInfo] = get_readframe_fcn(fileName) ;
+            % Call get_readframe_fcn() to get a function for reading frames
+            % from the video fileName
+            [~,~,strExt] = fileparts(fileName);
+            if strcmpi(strExt,'.seq') ,
+                % For .seq files, need to pass get_readframe_fcn() an index
+                % file name, otherwise it decides they're "Piotr-style" seq
+                % files, and sadness ensues.
+
+                % Look for the index file, creating it if it's missing
+                [pathNameToContainingFolder, baseName] = fileparts(fileName) ;
+                indexFileName=fullfile(pathNameToContainingFolder, [baseName '.mat']);
+                if ~exist(indexFileName, 'file') ,
+                    % Automatically generate the index if it doesn't exist, and save it to disk
+                    strctBasicMovInfo = fnReadBasicSeqInfo(fileName) ;
+                    [aiSeekPos, afTimestamp] = ...
+                        fnGenerateSeqSeekInfo(strctBasicMovInfo,strctBasicMovInfo.m_iNumFrames);
+                    strctMovInfo = strctBasicMovInfo ;
+                    strctMovInfo.m_aiSeekPos = aiSeekPos;
+                    strctMovInfo.m_afTimestamp = afTimestamp;
+                    strSeqFileName = fileName ;  %#ok<NASGU>
+                    save(indexFileName,'strSeqFileName','aiSeekPos','afTimestamp');
+                end
+
+                % Pass the index file name to get_readframe_fcn()
+                [readFrameFunction,nFrames,fid,headerInfo] = get_readframe_fcn(fileName, ...
+                                                                               'indexfilename', indexFileName, ...
+                                                                               'seqtype', 'shay' ) ;
+            else
+                [readFrameFunction,nFrames,fid,headerInfo] = get_readframe_fcn(fileName) ;
+            end
             
             self.fileName_ = fileName ;
             self.readFrameFunction_ = readFrameFunction ;

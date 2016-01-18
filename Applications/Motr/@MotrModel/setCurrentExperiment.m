@@ -41,9 +41,15 @@ else
     parameterFileNameAbs = defaultParameterFileNameAbs() ;
 end
 
-% load the parameter file
-global g_strctGlobalParam
-g_strctGlobalParam = fnLoadAlgorithmsConfigXML(parameterFileNameAbs) ;
+% We don't read the parameter file now, b/c there's a chance the file might
+% have moved, and we don't really *need* those parameters to be set until
+% the user tries to train or track.  So now we only load them right before
+% they're needed, and I added code to let the user locate the file if it's
+% missing.
+
+% % load the parameter file
+% global g_strctGlobalParam
+% g_strctGlobalParam = fnLoadAlgorithmsConfigXML(parameterFileNameAbs) ;
 
 % save to the userdata
 self.expSelected=true;

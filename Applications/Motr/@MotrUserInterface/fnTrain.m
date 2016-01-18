@@ -11,21 +11,44 @@ if isempty(g_bMouseHouse)
     g_bMouseHouse=false;
 end
 
+% get the model
+model=get(self,'userdata');
+
+% Load various algorithm parameters from the XML file, if not already
+% loaded
+
+% Define a local callback function, which will only be used once
+function err = callbackForNewParameterFileName(parameterFileNameAbs)
+    err = model.setParameterFileNameAbs(parameterFileNameAbs) ;
+end                  
+
+if isempty(g_strctGlobalParam) ,
+    originalAbsoluteFileNameOfParameterFile = model.parameterFileNameAbs_ ;
+    fileNameFilter = {'*.xml', 'Extensible Markup Language Files (*.xml)'; ...
+                      '*.*', 'All Files' } ;
+    [doesFileExist, ~, absoluteFileNameOfParameterFile] = ...
+        MotrUserInterface.checkIfFileExistsAndAskUserToLocateIfNot(originalAbsoluteFileNameOfParameterFile , ...
+                                                                   fileNameFilter , ...
+                                                                   @callbackForNewParameterFileName) ;
+    if ~doesFileExist, 
+        success = false ;
+        return
+    end                                             
+    g_strctGlobalParam = fnLoadAlgorithmsConfigXML(absoluteFileNameOfParameterFile) ;
+end
+
 % Let's be optimistic about success
 success=true;
 
-% get the userdata
-u=get(self,'userdata');
-
 % If there are no single-mouse clips, return
-clipSMFNAbs=u.clipSMFNAbs;
+clipSMFNAbs=model.clipSMFNAbs;
 if isempty(clipSMFNAbs)
-    return;
+    return
 end
 
 % get vars we need from userdata
-clusterMode=u.clusterMode;
-expDirName = u.expDirName;
+clusterMode=model.clusterMode;
+expDirName = model.expDirName;
 tuningDirName = fullfile(expDirName, 'Tuning');
 
 % make sure the tuning dir exists
