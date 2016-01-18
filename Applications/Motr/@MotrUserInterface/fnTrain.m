@@ -64,8 +64,8 @@ willGenerate=false(nClip,1);  % just to pre-allocate
 userSaidToNotGenerateExisting=false;
 outputFN=cell(nClip,1);
 for i=1:nClip
-  clipSMFNAbsThis=clipSMFNAbs{i};
-  [dummy,clipBaseName] = fileparts(clipSMFNAbsThis);  %#ok
+  absoluteFileNameOfClip=clipSMFNAbs{i};
+  [dummy,clipBaseName] = fileparts(absoluteFileNameOfClip);  %#ok
   outputFN{i} = fullfile(tuningDirName, clipBaseName, 'Identities.mat');
   if exist(outputFN{i}, 'file')
     if userSaidToNotGenerateExisting
@@ -114,11 +114,29 @@ end
 bCreatedSubmitFile=false;
 outputFN=cell(nClip,1);
 acVideoInfos=cell(nClip,1);
-for i=1:nClip
-  clipSMFNAbsThis=clipSMFNAbs{i};
-  [dummy,clipBaseName,clipExt] = fileparts(clipSMFNAbsThis);  %#ok
+
+% First, read in all the video info, so we check for missing files early
+for i=1:nClip ,
+  % Read the video into, letting user find the file if it has gone missing
+  optionalVideoInfo = self.checkThatSingleMouseClipExistsThenReadVideoInfo(i) ;
+  if isempty(optionalVideoInfo) ,
+    success = false ;
+    return
+  end
+  videoInfo = optionalVideoInfo{1} ;
+  acVideoInfos{i} = videoInfo ;
+end
+
+% Re-read the file names, since they may have changed
+clipSMFNAbs = model.clipSMFNAbs ;
+
+for i=1:nClip ,
+  % Compute the output file name
+  absoluteFileNameOfClip = clipSMFNAbs{i} ;
+  [dummy,clipBaseName,clipExt] = fileparts(absoluteFileNameOfClip);  %#ok
   outputFN{i} = fullfile(tuningDirName, clipBaseName, 'Identities.mat');
-  acVideoInfos{i} = fnReadVideoInfo(clipSMFNAbsThis);
+  
+  % If needed, generate the output file
   if willGenerate(i)
     if exist(outputFN{i}, 'file')
       movefile(outputFN{i}, [outputFN{i} '.backup']);
@@ -130,7 +148,7 @@ for i=1:nClip
       set(self,'pointer','watch');
       drawnow('expose');  drawnow('update');
       try
-       fnLearnMouseIdentity(clipSMFNAbsThis, strctBootstrap, outputFN{i});
+       fnLearnMouseIdentity(absoluteFileNameOfClip, strctBootstrap, outputFN{i});
       catch excp
         %excp.identifier
         set(self,'pointer','arrow');
@@ -159,7 +177,7 @@ for i=1:nClip
       end;
       strJobName = sprintf('%s/SingleJobargin%d.mat',jobDirName, i);
       aiFrames = 1:acVideoInfos{i}.m_iNumFrames;
-      fnCreateJob(clipSMFNAbsThis, ...
+      fnCreateJob(absoluteFileNameOfClip, ...
                   acVideoInfos{i}, ...
                   aiFrames, ...
                   [], ...

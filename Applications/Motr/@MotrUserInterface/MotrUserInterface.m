@@ -529,9 +529,9 @@ classdef MotrUserInterface < handle
               answer = questdlg('Do you want to select new single-mouse clips?', ...
                                 'Question', ...
                                 'Yes','No, keep these', ...
-                                'Yes');
+                                'No, keep these');
               if isempty(answer) || strcmpi(answer,'cancel')
-                return;
+                return
               elseif strcmpi(answer,'Yes')
                 fnSelectSingleMouseClips(self);
               end
@@ -588,8 +588,8 @@ classdef MotrUserInterface < handle
 
             % get userdata
             model = self.model_ ;            
-            expDirName=model.expDirName;
-            clipFNAbs=model.clipFNAbs;
+            %expDirName=model.expDirName;
+            %clipFNAbs=model.clipFNAbs;
 
             % Read in g_strctGlobalParam from disk, if it's not set already
             global g_strctGlobalParam
@@ -607,7 +607,7 @@ classdef MotrUserInterface < handle
                     MotrUserInterface.checkIfFileExistsAndAskUserToLocateIfNot(originalAbsoluteFileNameOfParameterFile , ...
                                                                                fileNameFilter , ...
                                                                                @callbackForNewParameterFileName) ;
-                if ~doesFileExist, 
+                if ~doesFileExist || ~isempty(callbackError), 
                     %success = false ;
                     return
                 end                                             
@@ -615,7 +615,7 @@ classdef MotrUserInterface < handle
             end
             
             % Generate the dir, file names we'll need.
-            sTuningDir = fullfile(expDirName, 'Tuning');
+            sTuningDir = fullfile(model.expDirName, 'Tuning');
             sDetectionFile = fullfile(sTuningDir, 'Detection.mat');
             sClassifiersFile = fullfile(sTuningDir, 'Identities.mat');
 
@@ -623,20 +623,18 @@ classdef MotrUserInterface < handle
             if ~exist(sClassifiersFile,'file')
               h=msgbox('Error. Identities file missing. Did the single mouse movies finish processing?');
               waitfor(h);
-              return;
-            end;
+              return
+            end
 
             % Figure out what clips will be tracked.
-            if isempty(clipFNAbs)
+            if isempty(model.clipFNAbs)
               fnSelectExperimentClips(self, false);
             else
               answer = ...
                 questdlg('Do you want to select new experiment clips?', ...
                          'Question', ...
-                         'Yes', ...
-                         'Yes, but keep the old ones', ...
-                         'No, keep these', ...
-                         'Yes');
+                         'Yes', 'Yes, but keep the old ones', 'No, keep these', ...
+                         'No, keep these');
               if isempty(answer)
                 return;
               end
@@ -646,18 +644,24 @@ classdef MotrUserInterface < handle
               end
             end
 
-            % fnSelectExperiment() modifies the the userdata, so re-read it
-            %model=get(hFig,'userdata');
-            clipFNAbs=model.clipFNAbs;
-            iClipCurr=model.iClipCurr;
-
             % If there are no clips, for whatever reason, return without doing
             % anything.
-            if isempty(clipFNAbs)
-              return;
+            if isempty(model.clipFNAbs)
+              return
             end
 
+            % Make sure all the clips are where we think they are
+            nClips = length(model.clipFNAbs) ;
+            for clipIndex=1:nClips ,
+                optionalVideoInfo = self.checkThatClipExistsThenReadVideoInfo(clipIndex) ;
+                if isempty(optionalVideoInfo) ,
+                  return
+                end
+            end            
+            % If we get here, all the clip files are where they should be
+            
             % Check for the "detection" file, and generate it if it's absent.
+            iClipCurr=model.iClipCurr;
             if exist(sDetectionFile, 'file')
               answer = ...
                 questdlg('Detection is already tuned. Do you want to retune it?', ...
@@ -671,7 +675,12 @@ classdef MotrUserInterface < handle
                 iNumMice = length(strctID.strctIdentityClassifier.m_astrctClassifiers);
                 TuneSegmentationGUI(iNumMice, sTuningDir);
               elseif strcmpi(answer, 'Yes, ignore previous tuning')
-                strctMovieInfo = fnReadVideoInfo(clipFNAbs{iClipCurr});
+                %strctMovieInfo = fnReadVideoInfo(clipFNAbs{iClipCurr});
+                optionalVideoInfo = self.checkThatClipExistsThenReadVideoInfo(iClipCurr) ;
+                if isempty(optionalVideoInfo) ,
+                  return
+                end
+                strctMovieInfo = optionalVideoInfo{1} ;
                 strctID = load(sClassifiersFile);  % Load the classifiers file.
                 set(self,'pointer','watch');
                 drawnow('expose');  drawnow('update');
@@ -680,8 +689,13 @@ classdef MotrUserInterface < handle
                 drawnow('expose');  drawnow('update');
               end
             else
-              clipFNAbsThis=clipFNAbs{iClipCurr};
-              strctMovieInfo = fnReadVideoInfo(clipFNAbsThis);
+              %clipFNAbsThis=clipFNAbs{iClipCurr};
+              %strctMovieInfo = fnReadVideoInfo(clipFNAbsThis);
+              optionalVideoInfo = self.checkThatClipExistsThenReadVideoInfo(iClipCurr) ;
+              if isempty(optionalVideoInfo) ,
+                return
+              end
+              strctMovieInfo = optionalVideoInfo{1} ;              
               strctID = load(sClassifiersFile);  % Load the classifiers file.
               set(self,'pointer','watch');
               drawnow('expose');  drawnow('update');
@@ -699,7 +713,7 @@ classdef MotrUserInterface < handle
                        'No, later', ...
                        'Yes');
             if isempty(answer) || strcmpi(answer,'No, later')
-              return;
+              return
             end
 
             % Finally, run tracking...
@@ -896,35 +910,23 @@ classdef MotrUserInterface < handle
         function hResults_Callback(self)
             %[iStatus, sExpName, aiNumJobs, acExperimentClips] = fnGetExpInfo();
             model=get(self,'userdata');
-            expDirName=model.expDirName;
-            clipFNAbs=model.clipFNAbs;
-            iClipCurr=model.iClipCurr;
-            absoluteFileNameOfSelectedClip = clipFNAbs{iClipCurr} ;
+            %expDirName=model.expDirName;
+            %clipFNAbs=model.clipFNAbs;
+            %iClipCurr=model.iClipCurr;
+            %absoluteFileNameOfSelectedClip = clipFNAbs{iClipCurr} ;
             
-            % Before launching the results editor, make sure these
-            % files and folders exist.  If they don't, prompt the user to
-            % pick them, and modify the model accordingly
-            
-            function err = callbackForNewClipFileName(absoluteFileNameOfClipFile)
-                err = model.fnReplaceClipFileName(iClipCurr, absoluteFileNameOfClipFile);
-            end
-
             % Make sure we can find the clip file
-            [doesClipFileExist, ~, absoluteFileNameOfSelectedClip] = ...
-                MotrUserInterface.checkIfFileExistsAndAskUserToLocateIfNot(absoluteFileNameOfSelectedClip, ...
-                                                                           {'*.avi', 'Microsoft AVI Videos (*.avi)'; ...
-                                                                            '*.mj2', 'Motion JPEG 2000 Videos (*.mj2)'; ...
-                                                                            '*.seq', 'Norpix Sequence Videos (*.seq)'; ...
-                                                                            '*.ufmf', 'Micro Fly Movie Format Videos (*.ufmf)'; ...
-                                                                            '*.*', 'All Files' }, ...
-                                                                           @callbackForNewClipFileName ) ;
-            if ~doesClipFileExist ,
+            iClipCurr=model.iClipCurr;
+            optionalVideoInfo = self.checkThatClipExistsThenReadVideoInfo(iClipCurr) ;
+            if isempty(optionalVideoInfo) ,
                 return
             end
             
             % Sort out the names of various things stored in the experiment
             % directory.
+            absoluteFileNameOfSelectedClip = model.clipFNAbs{iClipCurr} ;
             [dummy, clipBaseName] = fileparts(absoluteFileNameOfSelectedClip);  %#ok
+            expDirName=model.expDirName;
             tuningDirName = fullfile(expDirName, 'Tuning');
             jobsDirName = fullfile(expDirName, 'Jobs');
             resultsDirName = fullfile(expDirName, 'Results');
@@ -986,7 +988,51 @@ classdef MotrUserInterface < handle
             u.clusterMode=clusterMode;
             %set(gcbf,'userdata',u);
         end
-        
+
+        function optionalVideoInfo = checkThatClipExistsThenReadVideoInfo(self, indexOfClip)          
+          % Try to find the file if it has gone missing
+          model = get(self,'userdata') ;
+          originalAbsoluteFileNameOfClip = model.clipFNAbs{indexOfClip} ;
+          [doesFileExist, ~, absoluteFileNameOfClip, callbackError] = ...
+            MotrUserInterface.checkIfFileExistsAndAskUserToLocateIfNot( ...
+              originalAbsoluteFileNameOfClip, ...
+              {'*.avi', 'Microsoft AVI Videos (*.avi)'; ...
+               '*.mj2', 'Motion JPEG 2000 Videos (*.mj2)'; ...
+               '*.seq', 'Norpix Sequence Videos (*.seq)'; ...
+               '*.ufmf', 'Micro Fly Movie Format Videos (*.ufmf)'; ...
+               '*.*', 'All Files' }, ...
+              @(absoluteFileNameOfClipFile)(model.fnReplaceClipFileName(indexOfClip, absoluteFileNameOfClipFile)) ) ;
+          if ~doesFileExist || ~isempty(callbackError) ,
+            optionalVideoInfo = cell(1,0) ;
+            return
+          end
+          % At this point, absoluteFileNameOfClip existed the last time we checked
+          videoInfo = fnReadVideoInfo(absoluteFileNameOfClip);
+          optionalVideoInfo = { videoInfo } ;
+        end  % function
+
+        function optionalVideoInfo = checkThatSingleMouseClipExistsThenReadVideoInfo(self, indexOfSingleMouseClip)          
+          % Try to find the file if it has gone missing
+          model = get(self,'userdata') ;
+          originalAbsoluteFileNameOfClip = model.clipSMFNAbs{indexOfSingleMouseClip} ;
+          [doesFileExist, ~, absoluteFileNameOfClip, callbackError] = ...
+            MotrUserInterface.checkIfFileExistsAndAskUserToLocateIfNot( ...
+              originalAbsoluteFileNameOfClip, ...
+              {'*.avi', 'Microsoft AVI Videos (*.avi)'; ...
+               '*.mj2', 'Motion JPEG 2000 Videos (*.mj2)'; ...
+               '*.seq', 'Norpix Sequence Videos (*.seq)'; ...
+               '*.ufmf', 'Micro Fly Movie Format Videos (*.ufmf)'; ...
+               '*.*', 'All Files' }, ...
+              @(absoluteFileNameOfClipFile)(model.fnReplaceSingleMouseClipFileName(indexOfSingleMouseClip, absoluteFileNameOfClipFile)) ) ;
+          if ~doesFileExist || ~isempty(callbackError) ,
+            optionalVideoInfo = cell(1,0) ;
+            return
+          end
+          % At this point, absoluteFileNameOfClip existed the last time we checked
+          videoInfo = fnReadVideoInfo(absoluteFileNameOfClip);
+          optionalVideoInfo = { videoInfo } ;
+        end  % function
+
     end  % methods
         
     methods (Static=true)
@@ -1077,13 +1123,19 @@ classdef MotrUserInterface < handle
                 fileName = [baseName ext] ;
                 answer = questdlg(sprintf('The file %s is missing.  Would you like to locate it?', fileName) , ...
                                   'Missing file', ...
-                                  'Yes','No','Cancel', ...
+                                  'Yes', 'No', 'Cancel', ...
                                   'Cancel');
                 if isequal(answer,'Yes') ,
                     % User wants to locate the missing file
+                    
+                    % If possible, sort the filter entries to put the file
+                    % type of originalAbsoluteFileName at the top.
+                    resortedFilter = MotrUserInterface.sortFilterEntriesToPutGivenExtensionFirst(filter, ext);                    
+                    
+                    % Put up the file picker dialog
                     [filename,pathname] = ...
-                        uigetfile(filter, ..., ...
-                                   'Locate File...', ...
+                        uigetfile(resortedFilter, ...
+                                  'Locate File...', ...
                                   originalAbsoluteFileName);
                     if ischar(filename) ,
                         % User picked a new file
@@ -1133,6 +1185,37 @@ classdef MotrUserInterface < handle
                 end
             end
 
+        end  % function
+        
+        function sortedFilter = sortFilterEntriesToPutGivenExtensionFirst(filter, extension)
+          % filter should be something like       
+          % {'*.avi', 'Microsoft AVI Videos (*.avi)'; ...
+          %  '*.mj2', 'Motion JPEG 2000 Videos (*.mj2)'; ...
+          %  '*.seq', 'Norpix Sequence Videos (*.seq)'; ...
+          %  '*.ufmf', 'Micro Fly Movie Format Videos (*.ufmf)'; ...
+          %  '*.*', 'All Files' }
+          %
+          % extension should be something like '.seq'
+          %
+          % If difficulties are encountered, we just return the unaltered
+          % filter as sortedFilter.
+          
+          wildcards = filter(:,1) ;          
+          function isMatch = doesWildcardMatchExtension(wildcard, extension)
+            isMatch = strncmp(fliplr(wildcard),fliplr(extension),length(extension)) ;
+          end          
+          extensions = repmat({extension}, size(wildcards)) ;
+          isMatch = cellfun(@doesWildcardMatchExtension, wildcards, extensions) ;
+          if any(isMatch) ,
+            matchIndex = find(isMatch,1) ;
+            nRows = size(filter,1) ;
+            originalOrder = 1:nRows ;
+            newOrder = [matchIndex setdiff(originalOrder,matchIndex) ] ;
+            sortedFilter = filter(newOrder,:) ;
+          else
+            sortedFilter = filter ;
+          end
+          
         end  % function
         
     end  % static methods
