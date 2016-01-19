@@ -247,11 +247,14 @@ if exist(classifierOutputFN, 'file')
                  [classifierOutputFN '.backup']);
       case 'No, use existing file'
         bGenerateClassifier = false;
+      otherwise
+        % E.g. if the user hits cancel or closes the window
+        bGenerateClassifier = false ;
     end
   end
 else
   bGenerateClassifier = true;
-end    
+end
 
 % If appropriate, generate the identity classifiers, and the (multi-mouse) 
 % head-tail classifier, and store them in a file.
