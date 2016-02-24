@@ -53,4 +53,9 @@ Release History
                        files.  Added utility function to convert 
                        .avi files to .mj2 files.
 
- 
+1.05  Feb 24, 2015     Added support for .ufmf files.  Added support
+                       for higher-resolution videos.   Made Motr use
+                       JAABA video-reading code, to add support for
+                       even more video formats, and ease maintenance.
+                       In several places, Motr will now prompt user to
+                       locate a missing file.
