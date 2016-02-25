@@ -24,7 +24,7 @@ self.trainStatus=trainStatus;
 %set(hFig,'userdata',u);
 
 % update the clipFN.mat
-MotrModel.saveClipFN(expDirName,self.clipFNAbs,clipSMFNAbs,self.getParameterFileNameAbs())
+MotrModel.saveClipFN(expDirName,self.clipFNAbs,clipSMFNAbs,self.getParameterFileNameAbs()) ;
 
 % now update the GUI to reflect the status
 %fnUpdateGUIStatus(self);
