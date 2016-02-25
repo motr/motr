@@ -30,7 +30,7 @@ self.iClipCurr=iClipCurr;
 %set(hFig,'userdata',u);
 
 % Save the new info into the clipFN file
-MotrModel.saveClipFN(expDirName,clipFNAbs,self.clipSMFNAbs, self.getParameterFileNameAbs() )
+MotrModel.saveClipFN(expDirName,clipFNAbs,self.clipSMFNAbs, self.getParameterFileNameAbs() ) ;
 
 % now update the GUI to reflect the status
 %fnUpdateGUIStatus(self);
