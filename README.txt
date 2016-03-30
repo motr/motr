@@ -11,9 +11,9 @@ Motr documentation can be found here:
 This repository includes compiled binary MEX files for the 64-bit
 Windows platform.  So if you plan to run Motr on 64-bit Windows, there
 is no need to compile anything.  However, you will need the Microsoft
-Visual C++ Redistributable for Visual Studio 2012, available here:
+Visual C++ Redistributable for Visual Studio 2008, available here:
 
-    http://www.microsoft.com/en-us/download/details.aspx?id=30679
+    https://www.microsoft.com/en-us/download/details.aspx?id=15336
 
 (You want the one named vcredist_x64.exe.)
 
@@ -59,3 +59,6 @@ Release History
                        even more video formats, and ease maintenance.
                        In several places, Motr will now prompt user to
                        locate a missing file.
+
+1.06  Mar 30, 2015     Changed to release 2.0 of XMLTree.
+
