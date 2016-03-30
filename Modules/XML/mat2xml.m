@@ -8,7 +8,6 @@ function varargout = mat2xml(matfile, xmlfile)
 %  See also XML2MAT, XMLTREE, SAVE.
 
 %  Copyright 2003 Guillaume Flandin. 
-%  INRIA Sophia Antipolis / CEA-SHFJ
 %  Revision: 1.0 $  $Date: 2003/07/01 21:43 $
 
 error(nargchk(1,2,nargin));

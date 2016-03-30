@@ -8,7 +8,6 @@ function varargout = xml2mat(xmlfile, matfile)
 %  See also LOADXML, MAT2XML, XMLTREE, LOAD.
 
 %  Copyright 2003 Guillaume Flandin. 
-%  INRIA Sophia Antipolis / CEA-SHFJ
 %  Revision: 1.0 $  $Date: 2003/07/01 21:43 $
 
 % Bugs to handle:
