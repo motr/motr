@@ -4280,18 +4280,20 @@ methods
         end
         continue;
       end
-      if strcmpi(self.plotpath,'all') ,
-        set(self.hpath(fly),'visible','on');
-      elseif strcmpi(self.plotpath,'suspicious') 
-        if isempty(self.seq) ,
-          set(self.hpath(fly),'visible','off');
-        elseif ismember(fly,self.seq.flies) ,
-          set(self.hpath(fly),'visible','on');
-        else
-          set(self.hpath(fly),'visible','off');
-        end
-      else
-        set(self.hpath(fly),'visible','off');
+      if self.hpath(fly)>0 ,
+          if strcmpi(self.plotpath,'all') ,
+            set(self.hpath(fly),'visible','on');
+          elseif strcmpi(self.plotpath,'suspicious') 
+            if isempty(self.seq) ,
+              set(self.hpath(fly),'visible','off');
+            elseif ismember(fly,self.seq.flies) ,
+              set(self.hpath(fly),'visible','on');
+            else
+              set(self.hpath(fly),'visible','off');
+            end
+          else
+            set(self.hpath(fly),'visible','off');
+          end
       end
     end
   end  % method
