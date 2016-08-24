@@ -62,3 +62,7 @@ Release History
 
 1.06  Mar 30, 2015     Changed to release 2.0 of XMLTree.
 
+1.07  Aug 24, 2016     Bug fixes.
+
+1.08  Aug 24, 2016     Bug fixes.
+
