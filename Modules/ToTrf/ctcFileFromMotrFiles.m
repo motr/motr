@@ -23,6 +23,11 @@ if ~exist('minWalkingSpeedInBodyLengthsPerSec','var') || isempty(minWalkingSpeed
   minWalkingSpeedInBodyLengthsPerSec=0.07;
 end
 
+% Check for a pre-existing .ctc file, before we do all this work
+if exist(ctcFileName, 'file') ,
+    error('The file %s already exists.  Not overwriting this file.  Move or delete this file, or use a different .ctc filename.', ctcFileName) ;
+end
+
 % % First write the .ann file
 % annFileFromMotrFiles(annFileName, ...
 %                      seqFileName, ...
@@ -235,7 +240,11 @@ ctc.meanMajorAxisInPels=meanObservedMajorAxisInPels;
 
 % write the fields of that struct to the .ctc file
 % .ctc is for CaTalytiC
-save(ctcFileName,'-struct','ctc');
-
+% But check for a pre-existing .ctc file again, just to be sure.
+if exist(ctcFileName, 'file') ,
+    error('The file %s already exists.  Not overwriting this file.  Move or delete this file, or use a different .ctc filename.', ctcFileName) ;
+else
+    save(ctcFileName,'-struct','ctc');
 end
 
+end
